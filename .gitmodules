@@ -1,0 +1,3 @@
+[submodule ".claude/shared"]
+	path = .claude/shared
+	url = git@github.com:K4-713/k5.git

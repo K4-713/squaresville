@@ -1,0 +1,1 @@
+@.claude/shared/AGENTS.md
