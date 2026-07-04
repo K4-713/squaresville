@@ -69,10 +69,6 @@
           <p id="pattern-stats"></p>
           <div class="toolbar">
             <div class="field">
-              <label for="zoom-factor">Zoom</label>
-              <input type="number" id="zoom-factor" value="8" min="1" max="64" step="1">
-            </div>
-            <div class="field">
               <label for="conversion-style">Conversion style</label>
               <select id="conversion-style">
                 <option value="nearest" selected>Nearest color</option>
@@ -82,18 +78,16 @@
             </div>
             <button type="button" id="undo-action" disabled>Undo last action</button>
           </div>
-      <div class="side-by-side">
+      <div class="side-by-side" id="preview-images">
         <figure class="original-figure">
           <figcaption>Original image</figcaption>
           <img id="original-image" alt="The image you uploaded">
         </figure>
         <figure>
           <figcaption>Pattern preview (right-click to save)</figcaption>
-          <div class="pattern-scroller">
-            <div class="pattern-stack">
-              <img id="pattern-image" alt="Generated pattern preview">
-              <img id="pattern-highlight" alt="" aria-hidden="true">
-            </div>
+          <div class="pattern-stack">
+            <img id="pattern-image" alt="Generated pattern preview">
+            <img id="pattern-highlight" alt="" aria-hidden="true">
           </div>
         </figure>
       </div>
@@ -124,7 +118,7 @@
       <section aria-labelledby="palette-heading">
         <h3 id="palette-heading">Color palette</h3>
         <div class="field">
-          <label for="target-colors">Target number of colors</label>
+          <label for="target-colors">Number of colors</label>
           <input type="number" id="target-colors" min="1" step="1">
         </div>
         <div class="field">

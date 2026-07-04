@@ -214,45 +214,43 @@ figcaption {
   font-size: 0.85rem;
 }
 
+/* DESIGN.md "Equal side-by-side previews": the original and pattern preview each
+   take an equal-width half of the pane and are scaled to fill that half. Because
+   the pattern is generated proportional to the image, they share an aspect ratio,
+   so filling equal halves shows them at the same on-screen size, both fully
+   visible (no cropping). */
 .side-by-side {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.75rem;
-  align-items: flex-start;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  column-gap: 0.75rem;
+  align-items: start;
 }
 
 .side-by-side figure {
   margin: 0;
-  flex: 1 1 14rem;
   min-width: 0;
 }
 
-/* The original shrinks to a thumbnail so the pattern preview dominates. */
-.side-by-side .original-figure {
-  flex: 0 1 9rem;
+.side-by-side img {
+  display: block;
+  width: 100%;
+  height: auto;
 }
 
 .original-figure img {
-  max-height: 9rem;
-  width: auto;
-}
-
-.side-by-side img {
-  max-width: 100%;
-  height: auto;
   border: 1px solid var(--hairline);
 }
 
-/* The pattern preview is pixel art: keep squares crisp at any zoom. */
+/* The pattern preview is pixel art: keep the squares crisp as CSS scales it up. */
+.pattern-stack {
+  position: relative;
+  display: block;
+  border: 1px solid var(--hairline);
+  line-height: 0; /* no descender gap under the image */
+}
+
 #pattern-image {
   image-rendering: pixelated;
-  max-width: none;
-}
-
-.pattern-scroller {
-  overflow: auto;
-  max-height: calc(100vh - 15rem);
-  border: 1px solid var(--hairline);
 }
 
 /* Data readouts (dimensions, counts, hex codes) read as data: monospace. */
@@ -486,20 +484,16 @@ figcaption {
   width: 7rem;
 }
 
-/* Selection pulse (README: the selected color's squares slowly pulse once). */
-.pattern-stack {
-  position: relative;
-  display: inline-block;
-}
-
+/* Selection pulse (README: the selected color's squares slowly pulse once). The
+   overlay stretches to cover the CSS-scaled pattern image exactly. */
 #pattern-highlight {
   position: absolute;
-  top: 0;
-  left: 0;
+  inset: 0;
+  width: 100%;
+  height: 100%;
   opacity: 0;
   pointer-events: none;
   image-rendering: pixelated;
-  max-width: none;
 }
 
 #pattern-highlight.pulsing {

@@ -277,7 +277,7 @@ export function createSession() {
     setTargetColors: undoable(function (maxColors) {
       if (!pattern) throw new Error('generate a pattern before adjusting colors');
       if (!Number.isInteger(maxColors) || maxColors <= 0) {
-        throw new RangeError(`target number of colors must be a positive integer, got ${maxColors}`);
+        throw new RangeError(`number of colors must be a positive integer, got ${maxColors}`);
       }
       params = { ...params, maxColors };
       return regenerate();

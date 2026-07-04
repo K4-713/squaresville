@@ -72,7 +72,11 @@ async function handleUpload(file) {
   }
 }
 
-const currentZoom = () => Math.max(1, parseInt(el('zoom-factor').value, 10) || 1);
+// Internal pixels-per-square for the rendered pattern PNG. Fixed and whole so a
+// right-click-saved preview stays crisp and re-uploadable (TDD_save_resume); the
+// on-screen size is handled by CSS, which fits the preview to its half of the pane
+// (DESIGN.md "Equal side-by-side previews").
+const PATTERN_RENDER_SCALE = 8;
 
 /** Scale raw RGBA (one pixel per square) up by zoom into a PNG data URL. */
 function rgbaToScaledPng(rgba, width, height, zoom) {
@@ -90,10 +94,10 @@ function rgbaToScaledPng(rgba, width, height, zoom) {
   return scaled.toDataURL('image/png');
 }
 
-/** Render the pattern at the current zoom into the preview <img> (right-click saveable). */
+/** Render the pattern into the preview <img> (CSS fits it to its half; right-click saveable). */
 function renderPatternPreview(pattern) {
   const { rgba, width, height } = patternToRgba(pattern);
-  el('pattern-image').src = rgbaToScaledPng(rgba, width, height, currentZoom());
+  el('pattern-image').src = rgbaToScaledPng(rgba, width, height, PATTERN_RENDER_SCALE);
 }
 
 /**
@@ -114,7 +118,7 @@ function pulseSelectedColor(pattern) {
     }
   }
   const overlay = el('pattern-highlight');
-  overlay.src = rgbaToScaledPng(rgba, cols, rows, currentZoom());
+  overlay.src = rgbaToScaledPng(rgba, cols, rows, PATTERN_RENDER_SCALE);
   overlay.classList.remove('pulsing');
   void overlay.offsetWidth; // restart the animation even for repeated selections
   overlay.classList.add('pulsing');
@@ -349,14 +353,19 @@ function renderStats(pattern) {
 }
 
 function renderResults(pattern) {
+  el('results-section').hidden = false;
   renderStats(pattern);
+  // The number-of-colors control always shows the actual palette size, matching
+  // the stats line — both derive from pattern.palette.length (README "Adjust
+  // Number of Colors"). Merges/deletes shrink the palette, so this must re-sync
+  // on every render, not only on regeneration.
+  el('target-colors').value = pattern.palette.length;
   renderPalette(pattern);
   renderPatternPreview(pattern);
   // Keep the sort dropdown honest: it reflects the palette's active sort, which
   // edits re-apply (README) and regeneration clears back to "— choose a sort —".
   el('sort-method').value = session.sortMethod ?? '';
   el('undo-action').disabled = session.undoCount === 0;
-  el('results-section').hidden = false;
 }
 
 // README: undo up to 10 recent actions against the palette, dimensions, and
@@ -368,9 +377,8 @@ function handleUndo() {
     const pattern = session.undo();
     selectedColorIndex = null;
     cancelPendingMerge();
-    el('target-colors').value = session.params.maxColors;
     el('conversion-style').value = session.params.conversionStyle ?? 'nearest';
-    renderResults(pattern);
+    renderResults(pattern); // re-syncs the number-of-colors control to the palette
     showStatus('Undid the last action.');
     log.info('action undone', { remaining: session.undoCount });
   } catch (error) {
@@ -396,8 +404,7 @@ function handleGenerate(event) {
       maxColors: parseInt(el('max-colors').value, 10),
       itemType: el('item-type').value,
     });
-    el('target-colors').value = pattern.palette.length;
-    renderResults(pattern);
+    renderResults(pattern); // syncs the number-of-colors control to the palette
     showStatus('');
     log.info('pattern generated', {
       cols: pattern.cols, rows: pattern.rows, colors: pattern.palette.length,
@@ -551,7 +558,6 @@ el('conversion-style').addEventListener('change', () => {
     const pattern = session.setConversionStyle(el('conversion-style').value);
     selectedColorIndex = null; // regeneration can reshape the palette
     cancelPendingMerge();
-    el('target-colors').value = pattern.palette.length;
     renderResults(pattern);
     showStatus('');
     log.info('conversion style changed', { style: el('conversion-style').value });
@@ -656,7 +662,4 @@ linkProportionalInputs('pattern-rows', 'pattern-cols',
 el('image-upload').addEventListener('change', (e) => handleUpload(e.target.files[0]));
 el('parameters-form').addEventListener('submit', handleGenerate);
 el('target-colors').addEventListener('change', handleTargetColors);
-el('zoom-factor').addEventListener('change', () => {
-  if (session.pattern) renderPatternPreview(session.pattern);
-});
 log.debug('squaresville ui initialized');

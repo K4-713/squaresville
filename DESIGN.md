@@ -101,11 +101,19 @@ slider values remain visible as text, so position is never conveyed by color alo
 - **Compact editing workspace (decided 2026-07-03):** the results view is optimized
   so the palette can be manipulated while the pattern image stays in view — no
   scrolling between them. Two-column grid: the preview pane (stats, a compact
-  zoom/style/undo toolbar, the original as a small thumbnail beside the dominant
-  pattern preview, and the export controls) on the left, all palette tools in a
-  right-hand column. The preview pane is sticky, so it stays put while a tall
-  detail pane scrolls. Below ~68rem viewport width the columns stack.
-- Original image and pattern preview remain side-by-side (README requirement);
-  the original shrinks to a thumbnail so the preview dominates.
+  style/undo toolbar, the original beside the pattern preview, and the export
+  controls) on the left, all palette tools in a right-hand column. The preview pane
+  is sticky, so it stays put while a tall detail pane scrolls. Below ~68rem viewport
+  width the columns stack.
+- **Equal side-by-side previews (decided 2026-07-04):** the original image and the
+  pattern preview each get an equal-width half of the preview pane, and each is
+  scaled to fill its half with the whole image visible (no cropping). Because the
+  pattern is generated proportional to the image, the two share an aspect ratio, so
+  filling equal halves shows them at the same on-screen size — a direct visual
+  comparison. There is no separate zoom control: the previews simply size to the
+  space the current screen affords. The pattern is pixel art, so it scales up with
+  crisp (nearest-neighbour) squares; the pattern PNG is still rendered at a whole
+  number of pixels per square internally so a right-click-saved preview stays crisp
+  and re-uploadable.
 - Chrome stays tight everywhere: compact headings, spacing, and controls.
 - Usable on a laptop screen without horizontal scrolling.

@@ -69,12 +69,16 @@ Pipeline for base pattern generation:
 ## UI layer
 `src/ui/main.js` is a thin layer over the engine: it decodes the uploaded file via
 `createImageBitmap` + an offscreen canvas to get RGBA pixels, drives the editing
-session, and renders the result — scaled by the zoom factor with image smoothing
+session, and renders the result — nearest-neighbour scaled with image smoothing
 off — into an `<img>` (as a PNG data URL) so right-click → "Save image as" works
-everywhere. All state lives in the session object from `src/pattern/session.js`
-(plus an object URL for the original-image preview); the engine never touches the
-DOM. Fine-tuning controls (target color count, the color detail pane's adjuster)
-call session methods and re-render. The detail pane's RGB/CMYK/HSB sliders convert
+everywhere. The pattern PNG is rendered at a fixed whole number of pixels per square
+(so a right-click save stays crisp and re-uploadable); CSS then fits the original and
+the pattern into equal-width halves of the preview pane at the same on-screen size,
+both fully visible (DESIGN.md "Equal side-by-side previews") — there is no zoom
+control. All state lives in the session object from `src/pattern/session.js` (plus an
+object URL for the original-image preview); the engine never touches the DOM.
+Fine-tuning controls (target color count, the color detail pane's adjuster) call
+session methods and re-render. The detail pane's RGB/CMYK/HSB sliders convert
 via color.js; each slider's track is painted with a gradient scale from
 adjusterGradients.js, passed to the stylesheet through a per-slider CSS custom
 property (--track-gradient) and repainted on every detail-pane render and live
