@@ -402,6 +402,7 @@ function handleGenerate(event) {
       squareSize: parseFloat(el('square-size').value),
       units: el('units').value,
       maxColors: parseInt(el('max-colors').value, 10),
+      paletteStyle: el('palette-style').value, // ED-11 (default vivid)
       itemType: el('item-type').value,
     });
     renderResults(pattern); // syncs the number-of-colors control to the palette

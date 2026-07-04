@@ -109,3 +109,28 @@ colors — every square must reference a palette entry.
 
 Rationale: an empty palette has no meaning for a physical pattern and would
 break every downstream operation (rendering, counts, export).
+
+## ED-11: Palette selection strategies; Vivid is the default
+When an image has more distinct colors than the requested maximum, the palette is
+built by one of two selection strategies, chosen as a generation parameter
+(changing it regenerates from the source per ED-6):
+
+- **balanced** — population-weighted median cut: repeatedly split the box holding
+  the most squares, and represent each box by its population-weighted average.
+  Faithful to the areas of the image (good for photographic subjects). This is the
+  original algorithm.
+- **vivid** (default) — a saturation-weighted median cut that preserves vivid,
+  high-contrast accent colors even when they cover few squares. Each color is
+  weighted by `count × (1 + K·saturation)`; boxes are split in order of
+  `(total weight × color spread)` so a saturated cluster separates into its own box
+  instead of being averaged away; and each box is represented by its
+  saturation-weighted average.
+
+Both strategies are deterministic — identical inputs always yield the identical
+palette. Vivid is the default because Squaresville targets physical artwork
+(quilts, cross-stitch, mosaics), where the striking colors of a design should
+survive drastic palette reduction rather than being muddied into duller tones.
+
+Rationale: a plain population median cut spends its palette on large flat regions
+and averages rare vivid accents into grey; weighting by saturation and splitting by
+color spread keeps a design's bold colors, which is what physical-craft users want.

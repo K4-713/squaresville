@@ -4,8 +4,8 @@ A tool to create patterns for quilting, cross-stitch, mosaics, or other physical
 Try the Squaresville Pattern Generator at squaresville.k4-713.com
 
 ## How to use Squaresville
-First, upload an image to start with. 
-You will be prompted what kind of item you would like to generate a pattern for, what measurement units you'd like to work with, how large you want your squares to be in real life, how many rows/columns of squares you want in the pattern (with the image's original dimensions in pixels as the default), and maximum number of colors to use. Changing the number of columns or rows of squares will change the other, unchanged number so the pattern stays proportionate to your image.
+First, select a saved image of your own to start with.
+You will be prompted what kind of item you would like to generate a pattern for, what measurement units you'd like to work with, how large you want your squares to be in real life, how many rows/columns of squares you want in the pattern (with the image's original dimensions in pixels as the default), maximum number of colors to use, and palette style. Changing the number of columns or rows of squares will change the other, unchanged number so the pattern stays proportionate to your image.
 
 With this information, Squaresville will generate and display a base pattern image to work with, side-by-side with the original upload. It will also display the final dimensions of the piece based on your parameters, how many total squares are in the pattern, and open an editable color palette with all the colors present in the pattern image for fine-tuning.
 

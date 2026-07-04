@@ -59,8 +59,10 @@ pipeline testable in Node without a browser or DOM mocks.
 Pipeline for base pattern generation:
 1. `resample.js` box-averages the source RGBA pixels into one RGBA value per
    pattern square (cols × rows). Transparent pixels are composited over white first.
-2. `quantize.js` builds a palette of at most `maxColors` colors using median-cut,
-   then maps every square to a palette color via the selected conversion style
+2. `quantize.js` builds a palette of at most `maxColors` colors using median-cut
+   under the selected palette style (ED-11): **vivid** (default, saturation-weighted
+   so bold accents survive) or **balanced** (population-weighted, the original).
+   It then maps every square to a palette color via the selected conversion style
    (ED-8): nearest Euclidean RGB (default), 4×4 Bayer ordered dithering, or
    Floyd–Steinberg error diffusion.
 3. `pattern.js` assembles the indexed pattern model (ED-3), drops unused palette

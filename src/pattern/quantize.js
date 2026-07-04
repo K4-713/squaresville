@@ -1,9 +1,28 @@
 // Palette generation (median cut) and nearest-color mapping.
 // Deterministic and dependency-free; operates on plain arrays of [r, g, b] colors.
 
-import { colorDistanceSquared } from './color.js';
+import { colorDistanceSquared, rgbToHsl } from './color.js';
 
 const CHANNELS = [0, 1, 2]; // r, g, b positions within a color triple
+
+// Palette selection strategies (ENGINEERING_DECISIONS.md ED-11). Vivid is default.
+export const PALETTE_STYLES = { BALANCED: 'balanced', VIVID: 'vivid' };
+// How strongly a fully-saturated color outweighs a fully-dull one under vivid:
+// weight = count * (1 + K * saturation), saturation in 0..1 (ED-11).
+const VIVID_SATURATION_WEIGHT = 6;
+
+/** 0..1 saturation (HSL) of an [r, g, b] color. */
+function saturation01(color) {
+  return rgbToHsl(color[0], color[1], color[2]).s / 100;
+}
+
+/** Per-color weight for a style: population, boosted by vividness for vivid (ED-11). */
+function colorWeight({ color, count }, style) {
+  if (style === PALETTE_STYLES.VIVID) {
+    return count * (1 + VIVID_SATURATION_WEIGHT * saturation01(color));
+  }
+  return count;
+}
 
 /** Tally the distinct colors in a grid of RGBA squares as { color: [r,g,b], count }. */
 function tallyDistinctColors(rgbaGrid) {
@@ -18,34 +37,34 @@ function tallyDistinctColors(rgbaGrid) {
   }));
 }
 
-/** The channel index along which a set of weighted colors spreads the widest. */
-function widestChannel(entries) {
-  let best = 0;
-  let bestRange = -1;
-  for (const channel of CHANNELS) {
+/** The channel a box spreads widest along, and that range. */
+function widestExtent(entries) {
+  let channel = 0;
+  let range = -1;
+  for (const axis of CHANNELS) {
     let min = 255;
     let max = 0;
     for (const { color } of entries) {
-      if (color[channel] < min) min = color[channel];
-      if (color[channel] > max) max = color[channel];
+      if (color[axis] < min) min = color[axis];
+      if (color[axis] > max) max = color[axis];
     }
-    if (max - min > bestRange) {
-      bestRange = max - min;
-      best = channel;
+    if (max - min > range) {
+      range = max - min;
+      channel = axis;
     }
   }
-  return best;
+  return { channel, range };
 }
 
 /** Split a box of weighted colors at its weighted median along its widest channel. */
 function splitBox(entries) {
-  const channel = widestChannel(entries);
+  const { channel } = widestExtent(entries);
   const sorted = [...entries].sort((a, b) => a.color[channel] - b.color[channel]);
-  const totalWeight = sorted.reduce((sum, e) => sum + e.count, 0);
+  const totalWeight = sorted.reduce((sum, e) => sum + e.weight, 0);
   let seen = 0;
   let cut = 0;
   for (let i = 0; i < sorted.length - 1; i++) {
-    seen += sorted[i].count;
+    seen += sorted[i].weight;
     cut = i + 1;
     if (seen >= totalWeight / 2) break;
   }
@@ -58,37 +77,60 @@ function averageColor(entries) {
   let g = 0;
   let b = 0;
   let weight = 0;
-  for (const { color, count } of entries) {
-    r += color[0] * count;
-    g += color[1] * count;
-    b += color[2] * count;
-    weight += count;
+  for (const e of entries) {
+    r += e.color[0] * e.weight;
+    g += e.color[1] * e.weight;
+    b += e.color[2] * e.weight;
+    weight += e.weight;
   }
   return [Math.round(r / weight), Math.round(g / weight), Math.round(b / weight)];
 }
 
 /**
- * Build a palette of at most maxColors [r, g, b] colors for an RGBA square grid.
- * If the grid has no more distinct colors than maxColors, they are returned exactly.
+ * Which box to split next (ED-11): the most-populous box for balanced, or the box
+ * with the greatest vividness-weight × color spread for vivid (so a saturated
+ * cluster is separated into its own box rather than averaged away).
  */
-export function buildPalette(rgbaGrid, maxColors) {
+function boxPriority(entries, style) {
+  const weight = entries.reduce((sum, e) => sum + e.weight, 0);
+  return style === PALETTE_STYLES.VIVID ? weight * widestExtent(entries).range : weight;
+}
+
+/**
+ * Build a palette of at most maxColors [r, g, b] colors for an RGBA square grid,
+ * using a selection strategy (ED-11; default vivid). If the grid has no more
+ * distinct colors than maxColors, they are returned exactly.
+ */
+export function buildPalette(rgbaGrid, maxColors, style = PALETTE_STYLES.VIVID) {
   if (!Number.isInteger(maxColors) || maxColors <= 0) {
     throw new RangeError(`maxColors must be a positive integer, got ${maxColors}`);
   }
-  const distinct = tallyDistinctColors(rgbaGrid);
+  if (!Object.values(PALETTE_STYLES).includes(style)) {
+    throw new RangeError(`unknown palette style: ${style}`);
+  }
+  const distinct = tallyDistinctColors(rgbaGrid)
+    .map((entry) => ({ ...entry, weight: colorWeight(entry, style) }));
   if (distinct.length <= maxColors) {
     return distinct.map((entry) => entry.color);
   }
 
-  // Median cut: repeatedly split the box holding the most squares until we have
-  // maxColors boxes, then average each box into one palette color.
+  // Median cut: repeatedly split the highest-priority box until we have maxColors
+  // boxes, then collapse each box into one (weighted-average) palette color.
   const boxes = [distinct];
   while (boxes.length < maxColors) {
-    boxes.sort((a, b) => b.reduce((s, e) => s + e.count, 0) - a.reduce((s, e) => s + e.count, 0));
-    const candidate = boxes.findIndex((box) => box.length > 1);
-    if (candidate === -1) break; // every box is a single color; cannot split further
-    const [left, right] = splitBox(boxes[candidate]);
-    boxes.splice(candidate, 1, left, right);
+    let target = -1;
+    let bestPriority = -Infinity;
+    for (let i = 0; i < boxes.length; i++) {
+      if (boxes[i].length < 2) continue; // a single color cannot be split
+      const priority = boxPriority(boxes[i], style);
+      if (priority > bestPriority) {
+        bestPriority = priority;
+        target = i;
+      }
+    }
+    if (target === -1) break; // every box is a single color; cannot split further
+    const [left, right] = splitBox(boxes[target]);
+    boxes.splice(target, 1, left, right);
   }
   return boxes.map(averageColor);
 }

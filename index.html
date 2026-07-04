@@ -56,6 +56,13 @@
           <label for="max-colors">Maximum number of colors</label>
           <input type="number" id="max-colors" value="16" min="1" step="1" required>
         </div>
+        <div class="field">
+          <label for="palette-style">Palette style</label>
+          <select id="palette-style">
+            <option value="vivid" selected>Vivid — keep bright, high-contrast colors</option>
+            <option value="balanced">Balanced — faithful to the whole image</option>
+          </select>
+        </div>
         <button type="submit">Generate pattern</button>
       </form>
     </section>
