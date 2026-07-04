@@ -11,16 +11,32 @@ The MVP is being built in slices. Current slice in **bold**.
 6. Fine-tuning: conversion styles (dithering, diffusion, nearest color)
 7. Fine-tuning: undo (10 recent actions), zoom factor, pulse-highlight of selected color
 8. Saving: right-click-saveable pattern image that survives re-upload round-trip
-9. Final export: "Generate Pattern" → tabbed spreadsheet (pattern grid + color legend, symbols, row/column groups)
+9. Final export: "Generate Pattern" → tabbed .xlsx spreadsheet (pattern grid + color
+   legend, symbols, row/column groups). **Decided 2026-07-03:** use `write-excel-file`
+   (actively maintained, MIT, single small dep `fflate`), vendored as a static browser
+   bundle so ED-4's no-build/no-CDN posture holds; amend ED-4 + its TDD test, credit
+   both libraries in LICENSE.md, and go through the `dependency-change` skill when
+   this slice starts. (ExcelJS rejected: unmaintained since 2023. SheetJS rejected:
+   no cell styling in the free edition.) Cell fonts must be widely-installed ones
+   (e.g. Calibri/Arial) — .xlsx cannot embed fonts, so Delius would not travel.
+   "True symbols" should be Unicode geometric shapes that render in default fonts,
+   not symbol fonts like Wingdings (decided 2026-07-03).
 10. Deployment to squaresville.k4-713.com (and documented rollback path)
 
+## Decided, not yet built (2026-07-03)
+- **Measurement units:** offer inches, centimeters, and millimeters. Inches and cm
+  exist; add millimeters to the units select.
+- **"What kind of item":** should drive (a) sensible parameter defaults per craft
+  (e.g. cross-stitch: small squares, higher counts; quilt: larger squares, fewer
+  colors) and (b) UI terminology ("stitches" / "tiles" / "squares"). Both still
+  fully editable by the user. Needs its own slice after the MVP list above.
+
+## Future ideas (explicitly not MVP)
+- **Printable PDF pattern export:** PDFs can embed the Delius font, so the printed
+  pattern could carry the full Squaresville look (unlike .xlsx).
+- **Craft-specific blended colors:** colors halfway between two palette/material
+  colors, produced differently per craft — e.g. cross-stitch commonly twists two
+  differently-colored threads together to get a blended color.
+
 ## Open questions for the user
-- **Measurement units:** README says the user picks units but not which are offered.
-  Currently implementing inches and centimeters — confirm or extend.
-- **"What kind of item" (quilt / cross-stitch / mosaic / other):** README collects this
-  but doesn't say what it changes. Currently stored with the project only. Should it
-  affect defaults (square size, units), terminology, or nothing yet?
-- **Spreadsheet file format** for the final export (README "tabbed spreadsheet"):
-  .xlsx is the likely candidate but needs a decision — writing it dependency-free vs.
-  introducing a library (see dependency rules).
-- **DESIGN.md** needs the user's visual/UX direction (see placeholder there).
+- (none right now)

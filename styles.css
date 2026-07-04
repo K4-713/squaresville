@@ -1,11 +1,25 @@
-/* Squaresville — baseline styles. Visual direction pending in DESIGN.md;
-   these aim for clarity, WCAG AA contrast, and a usable laptop layout. */
+/* Squaresville — visual direction per DESIGN.md: minimal, warm, crafty.
+   All colors come from the tokens below; robin-egg blue is borders only (never
+   text), khaki is pattern-paper panel fill, and chrome near the swatches and
+   pattern preview stays neutral so it can't bias color judgments. */
+
+@font-face {
+  font-family: 'Delius';
+  src: url('fonts/delius-latin.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
 
 :root {
-  --ink: #1a1a24;
-  --paper: #fdfdfb;
-  --accent: #34426b;
-  --border: #c8c8d0;
+  --paper: #FAF6EF;          /* light warm off-white page background */
+  --ink: #2E2A24;            /* warm near-black text */
+  --stitch: #89CFC9;         /* robin-egg blue: dashed basting-stitch borders */
+  --pattern-paper: #E9DFC4;  /* khaki panel fill, old-school pattern tissue */
+  --pattern-line: #69603F;   /* darker khaki, captions/secondary text only */
+  --hairline: rgb(46 42 36 / 0.35); /* thin neutral edges, derived from --ink */
+  --font-hand: 'Delius', 'Segoe Print', 'Comic Sans MS', system-ui, sans-serif;
+  --font-data: ui-monospace, 'Cascadia Mono', 'SF Mono', Menlo, Consolas, monospace;
   color-scheme: light;
 }
 
@@ -13,19 +27,54 @@ body {
   margin: 0 auto;
   max-width: 72rem;
   padding: 1rem 1.5rem 4rem;
-  font-family: system-ui, sans-serif;
+  font-family: var(--font-hand);
+  font-size: 1.125rem;
   line-height: 1.5;
   color: var(--ink);
   background: var(--paper);
 }
 
 h1, h2, h3 {
-  color: var(--accent);
+  color: var(--ink);
   line-height: 1.2;
+  font-weight: 400; /* Delius has one weight; size carries the hierarchy */
+}
+
+/* Long-dashed robin-egg separators between sections: a line of basting
+   stitches, easily removable — drawn as a gradient because CSS `dashed`
+   can't make long dashes. */
+main > section ~ section,
+header {
+  background-image: repeating-linear-gradient(
+    90deg,
+    var(--stitch) 0 18px,
+    transparent 18px 30px
+  );
+  background-size: 100% 2px;
+  background-position: bottom left;
+  background-repeat: no-repeat;
+  padding-bottom: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+main > section ~ section {
+  background-position: top left;
+  padding-bottom: 0;
+  padding-top: 1.5rem;
+  margin-top: 1.5rem;
+  margin-bottom: 0;
 }
 
 section {
   margin-block: 1.5rem;
+}
+
+/* The parameter form sits on a khaki "pattern tissue" card. */
+#parameters-form {
+  background: var(--pattern-paper);
+  border-radius: 0.4rem;
+  padding: 1rem 1.25rem;
+  max-width: 42rem;
 }
 
 .field {
@@ -39,32 +88,55 @@ section {
   min-width: 16rem;
 }
 
+input, select {
+  font-family: var(--font-hand);
+  font-size: 1rem;
+  color: var(--ink);
+  background: var(--paper);
+  border: 1px solid var(--hairline);
+  border-radius: 0.25rem;
+  padding: 0.3rem 0.5rem;
+}
+
 input[type="number"] {
   width: 7rem;
+  font-family: var(--font-data);
 }
 
 button {
   margin-top: 0.75rem;
-  padding: 0.5rem 1.25rem;
-  font-size: 1rem;
-  color: var(--paper);
-  background: var(--accent);
-  border: none;
-  border-radius: 0.25rem;
+  padding: 0.5rem 1.5rem;
+  font-family: var(--font-hand);
+  font-size: 1.1rem;
+  color: var(--ink);
+  background: var(--stitch);
+  border: 1px solid var(--hairline);
+  border-radius: 0.4rem;
   cursor: pointer;
 }
 
+button:hover {
+  filter: brightness(1.05);
+}
+
+/* Focus is a solid high-contrast outline (DESIGN.md: never dashed, so it can't
+   be confused with the decorative stitching). */
 button:focus-visible,
 input:focus-visible,
 select:focus-visible {
-  outline: 3px solid var(--accent);
+  outline: 3px solid var(--ink);
   outline-offset: 2px;
 }
 
 #status-message:not(:empty) {
   padding: 0.5rem 0.75rem;
-  border-left: 4px solid var(--accent);
-  background: #eef0f6;
+  background: var(--pattern-paper);
+  border-radius: 0.25rem;
+}
+
+figcaption {
+  color: var(--pattern-line);
+  font-size: 1rem;
 }
 
 .side-by-side {
@@ -83,7 +155,7 @@ select:focus-visible {
 .side-by-side img {
   max-width: 100%;
   height: auto;
-  border: 1px solid var(--border);
+  border: 1px solid var(--hairline);
 }
 
 /* The pattern preview is pixel art: keep squares crisp at any zoom. */
@@ -95,7 +167,14 @@ select:focus-visible {
 .pattern-scroller {
   overflow: auto;
   max-height: 70vh;
-  border: 1px solid var(--border);
+  border: 1px solid var(--hairline);
+}
+
+/* Data readouts (dimensions, counts, hex codes) read as data: monospace. */
+#pattern-stats,
+#palette-list {
+  font-family: var(--font-data);
+  font-size: 0.95rem;
 }
 
 #palette-list {
@@ -110,11 +189,10 @@ select:focus-visible {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  border: 1px solid var(--border);
+  border: 1px solid var(--hairline);
   border-radius: 0.25rem;
   padding: 0.25rem 0.6rem;
-  font-family: ui-monospace, monospace;
-  font-size: 0.9rem;
+  background: var(--paper);
 }
 
 .swatch {

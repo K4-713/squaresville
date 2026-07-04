@@ -10,7 +10,9 @@ artifact.
 
 ```
 index.html          Entry page: upload control, parameter form, results layout
-styles.css          All styling
+styles.css          All styling; design tokens per DESIGN.md live in :root
+LICENSE.md          Project license + third-party attribution (fonts, libraries)
+fonts/              Vendored web fonts (Patrick Hand, OFL) — never CDN-loaded
 src/
   pattern/          Pure pattern engine — no DOM, no I/O, plain data in/out
     color.js        Hex/RGB conversion, color distance
