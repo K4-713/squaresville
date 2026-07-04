@@ -12,7 +12,8 @@ import { log } from './log.js';
 const el = (id) => document.getElementById(id);
 
 const session = createSession();
-let originalImageUrl = null; // object URL for the uploaded file's preview
+let originalImageUrl = null;  // object URL for the uploaded file's preview
+let selectedColorIndex = null; // palette index shown in the color detail area
 
 function showStatus(message) {
   el('status-message').textContent = message;
@@ -72,20 +73,48 @@ function renderPatternPreview(pattern) {
   el('pattern-image').src = scaled.toDataURL('image/png');
 }
 
+const colorInfoText = (pattern, i) => {
+  const count = pattern.counts[i];
+  return `${pattern.palette[i]} — ${count} ${count === 1 ? 'square' : 'squares'}`;
+};
+
+/** Fill (or hide) the color detail area for the selected swatch. */
+function renderColorDetail(pattern) {
+  const detail = el('color-detail');
+  if (selectedColorIndex === null || selectedColorIndex >= pattern.palette.length) {
+    selectedColorIndex = null;
+    detail.hidden = true;
+    return;
+  }
+  el('detail-swatch').style.background = pattern.palette[selectedColorIndex];
+  el('detail-text').textContent = colorInfoText(pattern, selectedColorIndex);
+  detail.hidden = false;
+}
+
+// DESIGN.md "Palette display": packed plain swatches; hex and count appear only on
+// mouseover (tooltip) or click (selects and fills the detail area). Each swatch's
+// accessible name carries the same info for screen readers.
 function renderPalette(pattern) {
   const list = el('palette-list');
   list.replaceChildren();
   pattern.palette.forEach((hex, i) => {
     const item = document.createElement('li');
-    const swatch = document.createElement('span');
-    swatch.className = 'swatch';
+    const swatch = document.createElement('button');
+    swatch.type = 'button';
+    swatch.className = 'palette-swatch';
     swatch.style.background = hex;
-    const label = document.createElement('span');
-    const count = pattern.counts[i];
-    label.textContent = `${hex} — ${count} ${count === 1 ? 'square' : 'squares'}`;
-    item.append(swatch, label);
+    swatch.title = colorInfoText(pattern, i);
+    swatch.setAttribute('aria-label', colorInfoText(pattern, i));
+    swatch.setAttribute('aria-pressed', String(i === selectedColorIndex));
+    swatch.addEventListener('click', () => {
+      selectedColorIndex = selectedColorIndex === i ? null : i; // click again to deselect
+      renderPalette(pattern);
+      renderColorDetail(pattern);
+    });
+    item.append(swatch);
     list.append(item);
   });
+  renderColorDetail(pattern);
 }
 
 function renderStats(pattern) {
@@ -109,6 +138,7 @@ function handleGenerate(event) {
     return;
   }
   try {
+    selectedColorIndex = null; // regeneration builds a new palette
     const pattern = session.generate({
       cols: parseInt(el('pattern-cols').value, 10),
       rows: parseInt(el('pattern-rows').value, 10),
@@ -134,6 +164,7 @@ function handleTargetColors() {
   if (!session.pattern) return;
   try {
     const pattern = session.setTargetColors(parseInt(el('target-colors').value, 10));
+    selectedColorIndex = null; // regeneration builds a new palette
     renderResults(pattern);
     showStatus('');
     log.info('target colors adjusted', {

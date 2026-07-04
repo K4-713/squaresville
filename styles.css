@@ -177,22 +177,50 @@ figcaption {
   font-size: 0.95rem;
 }
 
+/* Packed swatch area (DESIGN.md "Palette display"): plain color squares; hex and
+   count appear only on hover (tooltip) or click (detail area below). */
 #palette-list {
   list-style: none;
   padding: 0;
+  margin: 0.5rem 0;
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
+  gap: 2px;
+  max-width: 40rem;
 }
 
 #palette-list li {
+  display: contents; /* the button is the visual unit */
+}
+
+.palette-swatch {
+  width: 1.75rem;
+  height: 1.75rem;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--hairline);
+  border-radius: 0.15rem;
+  cursor: pointer;
+}
+
+.palette-swatch[aria-pressed="true"] {
+  outline: 3px solid var(--ink);
+  outline-offset: 1px;
+  position: relative; /* keep the selection outline above neighboring swatches */
+  z-index: 1;
+}
+
+#color-detail {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  border: 1px solid var(--hairline);
-  border-radius: 0.25rem;
-  padding: 0.25rem 0.6rem;
-  background: var(--paper);
+  margin-top: 0.75rem;
+  font-family: var(--font-data);
+  font-size: 0.95rem;
+}
+
+#color-detail[hidden] {
+  display: none;
 }
 
 .swatch {

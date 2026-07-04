@@ -36,11 +36,20 @@ Rules of use:
   precision data should read as data.
 - Fallback stack degrades to system fonts if the font file fails to load.
 
+## Palette display (decided 2026-07-03)
+The palette is a **packed area of plain swatches** — no inline text. Additional
+information (hex code, square count) appears only on mouseover (tooltip) or on
+click, which selects the color and fills the color detail area. Selection is shown
+with a solid ink outline. Each swatch is a real button whose accessible name is
+its hex code and square count, so the "swatch only" look never applies to screen
+readers or keyboard users.
+
 ## Accessibility (binding)
 - WCAG AA contrast (≥ 4.5:1) for all text token/background pairings — enforced by a
   `TDD_` test that parses the tokens from `styles.css` and computes the ratios.
-- All functionality keyboard-operable; form controls labeled; palette colors always
-  paired with their hex text, never conveyed by swatch alone.
+- All functionality keyboard-operable; form controls labeled; every palette color's
+  hex code is always available as text (accessible name, tooltip, and the detail
+  area when selected) — color is never the only signal.
 - Focus states use a solid (not dashed) high-contrast outline.
 
 ## Layout

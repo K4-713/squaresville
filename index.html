@@ -86,7 +86,11 @@
           <label for="target-colors">Target number of colors</label>
           <input type="number" id="target-colors" min="1" step="1">
         </div>
-        <ol id="palette-list"></ol>
+        <ol id="palette-list" aria-label="Pattern colors — select one for details"></ol>
+        <div id="color-detail" hidden>
+          <span class="swatch" id="detail-swatch" aria-hidden="true"></span>
+          <span id="detail-text"></span>
+        </div>
       </section>
     </section>
   </main>
