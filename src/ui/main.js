@@ -1,17 +1,18 @@
-// DOM wiring for the Squaresville flow (README.md "How to use Squaresville"):
-// upload -> parameter form (rows/cols default to the image's pixel dimensions) ->
-// side-by-side original + pattern preview, dimensions/square stats, and palette.
-// All processing happens in this browser tab — nothing is uploaded anywhere (ED-1).
+// DOM wiring for the Squaresville flow (README.md "How to use Squaresville" and
+// "Fine-tuning your Squaresville pattern"): upload -> parameter form (rows/cols
+// default to the image's pixel dimensions) -> side-by-side original + pattern
+// preview, dimensions/square stats, palette, and fine-tuning controls that
+// regenerate automatically. All state lives in the session (src/pattern/session.js);
+// all processing happens in this browser tab — nothing is uploaded anywhere (ED-1).
 
-import { generatePattern, patternToRgba } from '../pattern/pattern.js';
+import { patternToRgba } from '../pattern/pattern.js';
+import { createSession } from '../pattern/session.js';
 import { log } from './log.js';
 
 const el = (id) => document.getElementById(id);
 
-const project = {
-  source: null, // { rgba, width, height, objectUrl }
-  pattern: null,
-};
+const session = createSession();
+let originalImageUrl = null; // object URL for the uploaded file's preview
 
 function showStatus(message) {
   el('status-message').textContent = message;
@@ -34,14 +35,16 @@ async function handleUpload(file) {
   if (!file) return;
   try {
     const decoded = await decodeImageFile(file);
-    if (project.source?.objectUrl) URL.revokeObjectURL(project.source.objectUrl);
-    project.source = { ...decoded, objectUrl: URL.createObjectURL(file) };
+    session.loadSource(decoded);
+    if (originalImageUrl) URL.revokeObjectURL(originalImageUrl);
+    originalImageUrl = URL.createObjectURL(file);
 
     // README: rows/columns default to the image's original dimensions in pixels.
     el('pattern-cols').value = decoded.width;
     el('pattern-rows').value = decoded.height;
-    el('original-image').src = project.source.objectUrl;
+    el('original-image').src = originalImageUrl;
     el('parameters-section').hidden = false;
+    el('results-section').hidden = true; // a new upload starts a fresh session
     showStatus(`Image loaded (${decoded.width} × ${decoded.height} pixels). Choose your pattern settings.`);
     log.info('image uploaded', { width: decoded.width, height: decoded.height, type: file.type });
   } catch (error) {
@@ -51,9 +54,7 @@ async function handleUpload(file) {
 }
 
 /** Render the pattern at the current zoom into the preview <img> (right-click saveable). */
-function renderPatternPreview() {
-  const { pattern } = project;
-  if (!pattern) return;
+function renderPatternPreview(pattern) {
   const zoom = Math.max(1, parseInt(el('zoom-factor').value, 10) || 1);
   const { rgba, width, height } = patternToRgba(pattern);
 
@@ -94,17 +95,21 @@ function renderStats(pattern) {
     `${pattern.palette.length} colors`;
 }
 
+function renderResults(pattern) {
+  renderStats(pattern);
+  renderPalette(pattern);
+  renderPatternPreview(pattern);
+  el('results-section').hidden = false;
+}
+
 function handleGenerate(event) {
   event.preventDefault();
-  if (!project.source) {
+  if (!session.source) {
     showStatus('Upload an image first.');
     return;
   }
   try {
-    project.pattern = generatePattern({
-      rgba: project.source.rgba,
-      width: project.source.width,
-      height: project.source.height,
+    const pattern = session.generate({
       cols: parseInt(el('pattern-cols').value, 10),
       rows: parseInt(el('pattern-rows').value, 10),
       squareSize: parseFloat(el('square-size').value),
@@ -112,15 +117,11 @@ function handleGenerate(event) {
       maxColors: parseInt(el('max-colors').value, 10),
       itemType: el('item-type').value,
     });
-    renderStats(project.pattern);
-    renderPalette(project.pattern);
-    renderPatternPreview();
-    el('results-section').hidden = false;
+    el('target-colors').value = pattern.palette.length;
+    renderResults(pattern);
     showStatus('');
     log.info('pattern generated', {
-      cols: project.pattern.cols,
-      rows: project.pattern.rows,
-      colors: project.pattern.palette.length,
+      cols: pattern.cols, rows: pattern.rows, colors: pattern.palette.length,
     });
   } catch (error) {
     showStatus(`Could not generate the pattern: ${error.message}`);
@@ -128,7 +129,26 @@ function handleGenerate(event) {
   }
 }
 
+// README "Adjust Number of Colors": changing the target regenerates automatically.
+function handleTargetColors() {
+  if (!session.pattern) return;
+  try {
+    const pattern = session.setTargetColors(parseInt(el('target-colors').value, 10));
+    renderResults(pattern);
+    showStatus('');
+    log.info('target colors adjusted', {
+      target: el('target-colors').value, colors: pattern.palette.length,
+    });
+  } catch (error) {
+    showStatus(`Could not adjust the colors: ${error.message}`);
+    log.warn('color adjustment failed', error);
+  }
+}
+
 el('image-upload').addEventListener('change', (e) => handleUpload(e.target.files[0]));
 el('parameters-form').addEventListener('submit', handleGenerate);
-el('zoom-factor').addEventListener('change', renderPatternPreview);
+el('target-colors').addEventListener('change', handleTargetColors);
+el('zoom-factor').addEventListener('change', () => {
+  if (session.pattern) renderPatternPreview(session.pattern);
+});
 log.debug('squaresville ui initialized');

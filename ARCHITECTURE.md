@@ -20,6 +20,8 @@ src/
     resample.js     Downsamples RGBA pixels to the pattern grid (box average)
     quantize.js     Median-cut palette generation + nearest-color mapping
     pattern.js      Orchestrates the above into the indexed pattern model (ED-3)
+    session.js      Editing-session state: source pixels, params, current pattern;
+                    fine-tuning actions regenerate from the source (ED-6)
   ui/
     main.js         DOM wiring: file upload, form, preview rendering, palette list
     log.js          Leveled logger; level is a localStorage setting, not code
@@ -42,10 +44,13 @@ Pipeline for base pattern generation:
 
 ## UI layer
 `src/ui/main.js` is a thin layer over the engine: it decodes the uploaded file via
-`createImageBitmap` + an offscreen canvas to get RGBA pixels, calls the engine, and
-renders the result — scaled by the zoom factor with image smoothing off — into an
-`<img>` (as a PNG data URL) so right-click → "Save image as" works everywhere. All
-state lives in a single in-memory project object; the engine never touches the DOM.
+`createImageBitmap` + an offscreen canvas to get RGBA pixels, drives the editing
+session, and renders the result — scaled by the zoom factor with image smoothing
+off — into an `<img>` (as a PNG data URL) so right-click → "Save image as" works
+everywhere. All state lives in the session object from `src/pattern/session.js`
+(plus an object URL for the original-image preview); the engine never touches the
+DOM. Fine-tuning controls (currently the target color count) call session methods
+and re-render.
 
 ## Runtime and tooling
 - Browser: evergreen browsers with ES modules; no transpilation.

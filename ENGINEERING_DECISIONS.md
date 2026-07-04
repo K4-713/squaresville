@@ -47,3 +47,13 @@ white fabric/paper. Fully transparent regions therefore become white squares.
 
 Rationale: physical patterns have no transparency; white is the least surprising
 substitute and keeps results deterministic across images with alpha channels.
+
+## ED-6: Fine-tuning regenerates from the original source pixels
+Any regeneration triggered by fine-tuning parameters (e.g. changing the target
+number of colors) re-runs the pipeline from the original uploaded image's pixels,
+which are kept in memory for the life of the editing session. Regeneration never
+re-quantizes the current pattern. Consequence: lowering the color count and then
+raising it again restores color detail rather than staying degraded.
+
+Rationale: quantization is lossy; chaining regenerations off the pattern would
+compound the loss and make fine-tuning controls feel broken (a one-way ratchet).

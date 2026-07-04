@@ -4,8 +4,8 @@
 The MVP is being built in slices. Current slice in **bold**.
 
 1. ~~Core flow: upload → parameters → base pattern + palette + dimensions (README "How to use Squaresville")~~ ✅ done (includes a basic zoom control; browser-verified end-to-end)
-2. **Fine-tuning: adjust number of colors with automatic regeneration**
-3. Fine-tuning: color detail pane (swatch, hex, counts, nearest neighbors, color adjuster)
+2. ~~Fine-tuning: adjust number of colors with automatic regeneration~~ ✅ done (session module + ED-6; browser-verified)
+3. **Fine-tuning: color detail pane (swatch, hex, counts, nearest neighbors, color adjuster)**
 4. Fine-tuning: delete a color; merge colors (A->B, A<-B, Average)
 5. Fine-tuning: palette sorting (standard color sorts + by frequency), selection survives sort
 6. Fine-tuning: conversion styles (dithering, diffusion, nearest color)
