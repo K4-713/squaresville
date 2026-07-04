@@ -165,9 +165,16 @@
           </div>
           <div>
             <h4>Adjust this color</h4>
-            <div class="field">
-              <label for="adjust-picker">Color picker</label>
-              <input type="color" id="adjust-picker">
+            <div class="color-wheel" id="color-wheel">
+              <div class="color-wheel-ring" id="wheel-ring" aria-hidden="true"></div>
+              <div class="color-wheel-square" id="wheel-square">
+                <div class="wheel-handle" id="sv-handle" tabindex="0" role="slider"
+                     aria-label="Saturation and brightness"
+                     aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"></div>
+              </div>
+              <div class="wheel-handle wheel-handle-hue" id="hue-handle" tabindex="0"
+                   role="slider" aria-label="Hue"
+                   aria-valuemin="0" aria-valuemax="360" aria-valuenow="0"></div>
             </div>
             <div class="field">
               <label for="adjust-hex">Hex code</label>

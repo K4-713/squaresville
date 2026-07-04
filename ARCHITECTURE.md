@@ -31,14 +31,19 @@ src/
                     color; Average = change both to the averaged color. Sorting
                     reorders palette + counts and remaps indices, leaving the
                     rendered image untouched (methods: hue, lightness,
-                    saturation, frequency). Undo keeps up to 10 snapshots of
-                    { pattern, params }; every public mutator is wrapped so one
-                    user action = one history entry (nested internal edits and
-                    no-ops/failures add nothing)
+                    saturation, frequency). The active sort method is tracked;
+                    palette manipulations (change/delete/merge) re-apply it once
+                    at the outermost action so the palette stays ordered (README),
+                    and regeneration clears it. Undo keeps up to 10 snapshots of
+                    { pattern, params, sortMethod }; every public mutator is
+                    wrapped so one user action = one history entry (nested
+                    internal edits and no-ops/failures add nothing)
   ui/
     main.js         DOM wiring: file upload, form, preview rendering, palette list
     adjusterGradients.js  Pure gradient-scale stops/CSS for the adjuster slider
                     tracks (DESIGN.md "Adjuster slider tracks")
+    colorPicker.js  Pure coordinate math for the in-pane hue-ring + saturation/
+                    brightness-square picker (DESIGN.md "In-pane color picker")
     log.js          Leveled logger; level is a localStorage setting, not code
 vendor/             Vendored third-party bundles (ED-4): write-excel-file, which
                     performs the .xlsx download from data built by export.js
@@ -75,6 +80,12 @@ adjusterGradients.js, passed to the stylesheet through a per-slider CSS custom
 property (--track-gradient) and repainted on every detail-pane render and live
 on every slider 'input' event — mid-drag the pane re-renders from the dragged
 family's slider values while holding that family's positions untouched. The
+graphical color picker is an in-page hue ring + saturation/brightness square
+(colorPicker.js geometry, CSS conic-gradient + layered gradients, handles
+positioned by percentage so no rendered size is needed); dragging or arrow-keying
+a handle previews live across the pane and applies on release, with the wheel's
+own h/s/v held as the source of truth during a drag (the same anti-hue-loss rule
+as the sliders). It replaces the native <input type="color"> modal. The
 selection pulse is a second absolutely-positioned <img> overlaying
 the preview — white where the selected color's squares are — faded in and out once
 by a CSS animation (shortened under prefers-reduced-motion).

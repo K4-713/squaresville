@@ -11,6 +11,7 @@ import {
   hexToRgb, rgbToHex, rgbToCmyk, cmykToRgb, rgbToHsb, hsbToRgb,
 } from '../pattern/color.js';
 import { sliderGradientCss } from './adjusterGradients.js';
+import { hueForVector, vectorForHue, svForPoint, pointForSv } from './colorPicker.js';
 import { createSession, MERGE_STYLES } from '../pattern/session.js';
 import { buildWorkbook } from '../pattern/export.js';
 import { log } from './log.js';
@@ -217,19 +218,48 @@ function renderNeighbors(pattern) {
   }
 }
 
+// The color wheel's live hue/saturation/brightness. It is the source of truth
+// while a wheel handle is being dragged (DESIGN.md "In-pane color picker"): at an
+// achromatic extreme, hue read back from the resulting hex would be lost, so the
+// wheel keeps its own h/s/v and only resyncs from the hex on an external change.
+let pickerHsv = { h: 0, s: 0, v: 0 };
+const RING_RADIUS_FRACTION = 0.9; // handle sits in the ring band, near the edge
+
+/** Position the wheel's two handles and tint its square from pickerHsv. */
+function renderColorWheel() {
+  const { h, s, v } = pickerHsv;
+  const hueColor = ((c) => rgbToHex(c.r, c.g, c.b))(hsbToRgb(h, 100, 100));
+  el('wheel-square').style.setProperty('--wheel-hue-color', hueColor);
+
+  const hueVector = vectorForHue(h, RING_RADIUS_FRACTION);
+  const hueHandle = el('hue-handle');
+  hueHandle.style.left = `${50 + hueVector.x * 50}%`;
+  hueHandle.style.top = `${50 + hueVector.y * 50}%`;
+  hueHandle.setAttribute('aria-valuenow', String(Math.round(h)));
+
+  const svPoint = pointForSv(s, v, 100);
+  const svHandle = el('sv-handle');
+  svHandle.style.left = `${svPoint.x}%`;
+  svHandle.style.top = `${svPoint.y}%`;
+  svHandle.setAttribute('aria-valuenow', String(Math.round(s)));
+  svHandle.setAttribute('aria-valuetext', `saturation ${Math.round(s)}%, brightness ${Math.round(v)}%`);
+}
+
 /**
- * Fill the adjuster controls (picker, hex, rgb/cmyk/hsb sliders) from a hex color.
- * holdChannels: sliders whose positions must not be rewritten — during a drag the
+ * Fill the adjuster controls (wheel, hex, rgb/cmyk/hsb sliders) from a hex color.
+ * opts.hold: sliders whose positions must not be rewritten — during a drag the
  * dragged family's values are the source of truth (DESIGN.md "Adjuster slider
  * tracks": a transient extreme like brightness 0 must not wipe out the family's
- * other channels). Their gradient tracks still repaint.
+ * other channels). Their gradient tracks still repaint. opts.fromPicker: the wheel
+ * is driving, so keep pickerHsv rather than resyncing it from the hex.
  */
-function renderAdjuster(hex, holdChannels = []) {
+function renderAdjuster(hex, { hold = [], fromPicker = false } = {}) {
   const { r, g, b } = hexToRgb(hex);
-  el('adjust-picker').value = hex.toLowerCase(); // input[type=color] wants lowercase
   el('adjust-hex').value = hex;
   const cmyk = rgbToCmyk(r, g, b);
   const hsb = rgbToHsb(r, g, b);
+  if (!fromPicker) pickerHsv = { h: hsb.h, s: hsb.s, v: hsb.b };
+  renderColorWheel();
   const channels = {
     r, g, b,
     c: cmyk.c, m: cmyk.m, y: cmyk.y, k: cmyk.k,
@@ -237,7 +267,7 @@ function renderAdjuster(hex, holdChannels = []) {
   };
   for (const [channel, value] of Object.entries(channels)) {
     const slider = el(`adjust-${channel}`);
-    if (!holdChannels.includes(channel)) {
+    if (!hold.includes(channel)) {
       slider.value = Math.round(value);
       el(`adjust-${channel}-value`).textContent = Math.round(value);
     }
@@ -322,6 +352,9 @@ function renderResults(pattern) {
   renderStats(pattern);
   renderPalette(pattern);
   renderPatternPreview(pattern);
+  // Keep the sort dropdown honest: it reflects the palette's active sort, which
+  // edits re-apply (README) and regeneration clears back to "— choose a sort —".
+  el('sort-method').value = session.sortMethod ?? '';
   el('undo-action').disabled = session.undoCount === 0;
   el('results-section').hidden = false;
 }
@@ -394,7 +427,7 @@ function handleTargetColors() {
 }
 
 // Adjuster wiring: sliders preview the in-progress color while dragging ('input')
-// and apply it on release ('change'); picker and hex entry apply directly.
+// and apply it on release ('change'); the wheel and hex entry apply directly.
 const rgbSliderValues = () =>
   rgbToHex(...['r', 'g', 'b'].map((ch) => parseInt(el(`adjust-${ch}`).value, 10)));
 
@@ -423,11 +456,92 @@ for (const { channels, valuesToHex } of sliderFamilies) {
     // the in-progress color; the dragged family's own positions are held.
     slider.addEventListener('input', () => {
       el(`adjust-${channel}-value`).textContent = slider.value;
-      renderAdjuster(valuesToHex(), channels);
+      renderAdjuster(valuesToHex(), { hold: channels });
     });
     slider.addEventListener('change', () => applyColorChange(valuesToHex()));
   }
 }
+
+// DESIGN.md "In-pane color picker": the hue ring and saturation/brightness square.
+// Dragging a handle previews the color live across the pane (renderAdjuster with
+// fromPicker, so the wheel keeps its own h/s/v) and applies it on release.
+const pickerHex = () => {
+  const { r, g, b } = hsbToRgb(pickerHsv.h, pickerHsv.s, pickerHsv.v);
+  return rgbToHex(r, g, b);
+};
+
+function previewPicker(commit) {
+  const hex = pickerHex();
+  renderAdjuster(hex, { fromPicker: true });
+  if (commit) applyColorChange(hex);
+}
+
+function hueFromEvent(event) {
+  const rect = el('color-wheel').getBoundingClientRect();
+  pickerHsv.h = hueForVector(
+    event.clientX - (rect.left + rect.width / 2),
+    event.clientY - (rect.top + rect.height / 2),
+  );
+}
+
+function svFromEvent(event) {
+  const rect = el('wheel-square').getBoundingClientRect();
+  const { s, v } = svForPoint(event.clientX - rect.left, event.clientY - rect.top, rect.width);
+  pickerHsv.s = s;
+  pickerHsv.v = v;
+}
+
+// Wire each wheel surface as a pointer-drag: down starts and previews, moves
+// preview while captured, up commits the edit to the palette.
+function wireWheelDrag(surfaceId, readFromEvent) {
+  const surface = el(surfaceId);
+  let dragging = false;
+  surface.addEventListener('pointerdown', (event) => {
+    dragging = true;
+    surface.setPointerCapture(event.pointerId);
+    readFromEvent(event);
+    previewPicker(false);
+    event.preventDefault();
+  });
+  surface.addEventListener('pointermove', (event) => {
+    if (!dragging) return;
+    readFromEvent(event);
+    previewPicker(false);
+  });
+  const end = () => {
+    if (!dragging) return;
+    dragging = false;
+    previewPicker(true);
+  };
+  surface.addEventListener('pointerup', end);
+  surface.addEventListener('pointercancel', end);
+}
+wireWheelDrag('wheel-ring', hueFromEvent);
+wireWheelDrag('wheel-square', svFromEvent);
+
+// Keyboard operability (DESIGN.md Accessibility, binding): arrow keys nudge the
+// focused handle and apply the change, so the wheel needs no pointer.
+const clampPercent = (value) => Math.min(100, Math.max(0, value));
+el('hue-handle').addEventListener('keydown', (event) => {
+  const step = { ArrowRight: 1, ArrowUp: 1, ArrowLeft: -1, ArrowDown: -1 }[event.key];
+  if (step === undefined) return;
+  event.preventDefault();
+  pickerHsv.h = (pickerHsv.h + step * (event.shiftKey ? 10 : 1) + 360) % 360;
+  previewPicker(true);
+});
+el('sv-handle').addEventListener('keydown', (event) => {
+  const delta = event.shiftKey ? 10 : 1;
+  const move = {
+    ArrowRight: () => { pickerHsv.s = clampPercent(pickerHsv.s + delta); },
+    ArrowLeft: () => { pickerHsv.s = clampPercent(pickerHsv.s - delta); },
+    ArrowUp: () => { pickerHsv.v = clampPercent(pickerHsv.v + delta); },
+    ArrowDown: () => { pickerHsv.v = clampPercent(pickerHsv.v - delta); },
+  }[event.key];
+  if (!move) return;
+  event.preventDefault();
+  move();
+  previewPicker(true);
+});
 
 // README: the pattern regenerates automatically according to the selected
 // conversion style (algorithms per ED-8; regenerates from source per ED-6).
@@ -477,7 +591,6 @@ el('merge-color').addEventListener('click', () => {
   showStatus('Now select the color to merge with — click any swatch or nearby color.');
 });
 
-el('adjust-picker').addEventListener('change', () => applyColorChange(el('adjust-picker').value));
 el('adjust-hex').addEventListener('change', () => {
   const entered = el('adjust-hex').value.trim();
   applyColorChange(entered.startsWith('#') ? entered : `#${entered}`);

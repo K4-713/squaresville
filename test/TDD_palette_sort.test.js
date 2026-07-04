@@ -4,7 +4,7 @@
 // remain selected through a sorting operation."
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createSession, SORT_METHODS } from '../src/pattern/session.js';
+import { createSession, SORT_METHODS, MERGE_STYLES } from '../src/pattern/session.js';
 import { rgbToHsl } from '../src/pattern/color.js';
 import { patternToRgba } from '../src/pattern/pattern.js';
 import { imageFromPixels } from './helpers/testImages.js';
@@ -84,6 +84,89 @@ test('TDD_sorting rejects garbage and leaves the pattern intact', () => {
 
   const fresh = createSession();
   assert.throws(() => fresh.sortPalette(SORT_METHODS.HUE), /pattern/i);
+});
+
+// README: "While a sort is active, the palette re-applies it after every change
+// you make to the palette — adjusting a color, deleting, or merging." Covers all
+// three palette manipulations, for both frequency and a color-value sort.
+
+test('TDD_a merge re-applies an active most-used sort (README)', () => {
+  const session = sortSession();
+  session.sortPalette(SORT_METHODS.FREQUENCY); // yellow4, gray3, red2, blue1
+  const red = session.pattern.palette.indexOf('#FF0000');
+  const gray = session.pattern.palette.indexOf('#808080');
+  const { pattern, colorIndex } = session.mergeColors(red, gray, MERGE_STYLES.A_TO_B);
+  // red's squares join gray -> gray now has 5 and jumps to the front
+  assert.deepEqual(pattern.counts, [5, 4, 1], 'palette re-sorted by the new counts');
+  assert.equal(pattern.palette[0], '#808080');
+  assert.equal(colorIndex, 0, 'the merged color is tracked to its new position');
+  assert.equal(session.sortMethod, SORT_METHODS.FREQUENCY);
+});
+
+test('TDD_adjusting a color re-applies an active hue sort (README)', () => {
+  const session = sortSession();
+  session.sortPalette(SORT_METHODS.HUE); // gray(achr), red(0), yellow(60), blue(240)
+  const red = session.pattern.palette.indexOf('#FF0000');
+  const { pattern, colorIndex } = session.changeColor(red, '#00FF00'); // -> hue 120
+  assert.deepEqual(pattern.palette, ['#808080', '#FFFF00', '#00FF00', '#0000FF'],
+    'the edited color moves to its new hue position');
+  assert.equal(pattern.palette[colorIndex], '#00FF00', 'the edited color stays selected');
+  assert.equal(session.sortMethod, SORT_METHODS.HUE);
+});
+
+test('TDD_deleting a color re-applies an active sort (README)', () => {
+  const session = sortSession();
+  session.sortPalette(SORT_METHODS.HUE);
+  const red = session.pattern.palette.indexOf('#FF0000');
+  const { pattern } = session.deleteColor(red); // red's squares go to nearest (gray)
+  assert.deepEqual(pattern.palette, ['#808080', '#FFFF00', '#0000FF'],
+    'the remaining colors stay in hue order');
+  assert.equal(session.sortMethod, SORT_METHODS.HUE);
+});
+
+test('TDD_with no active sort, editing does not reorder the palette', () => {
+  const session = sortSession();
+  assert.equal(session.sortMethod, null, 'no sort has been chosen');
+  const before = session.pattern.palette.slice();
+  const red = session.pattern.palette.indexOf('#FF0000');
+  session.changeColor(red, '#010203'); // a distinct color, near nothing
+  assert.equal(session.sortMethod, null, 'still no active sort');
+  const after = session.pattern.palette;
+  for (let i = 0; i < before.length; i++) {
+    if (before[i] !== '#FF0000') assert.equal(after[i], before[i], 'untouched colors did not move');
+  }
+});
+
+test('TDD_a no-op edit under an active sort adds no undo step', () => {
+  const session = sortSession();
+  session.sortPalette(SORT_METHODS.FREQUENCY);
+  const steps = session.undoCount;
+  const first = session.pattern.palette[0];
+  session.changeColor(0, first); // change a color to the value it already has
+  assert.equal(session.undoCount, steps, 'a no-op must not re-sort or add history');
+});
+
+test('TDD_the active sort is tracked and cleared on regeneration', () => {
+  const session = sortSession();
+  assert.equal(session.sortMethod, null);
+  session.sortPalette(SORT_METHODS.LIGHTNESS);
+  assert.equal(session.sortMethod, SORT_METHODS.LIGHTNESS);
+  session.setTargetColors(2); // regenerates from source (ED-6)
+  assert.equal(session.sortMethod, null, 'a freshly generated palette is no longer user-sorted');
+});
+
+test('TDD_an edit plus its automatic re-sort is a single undo step (README)', () => {
+  const session = sortSession();
+  session.sortPalette(SORT_METHODS.FREQUENCY);
+  assert.equal(session.undoCount, 1);
+  const red = session.pattern.palette.indexOf('#FF0000');
+  const gray = session.pattern.palette.indexOf('#808080');
+  session.mergeColors(red, gray, MERGE_STYLES.A_TO_B);
+  assert.equal(session.undoCount, 2, 'merge + auto re-sort count as one action');
+  const restored = session.undo();
+  assert.deepEqual(restored.counts, [4, 3, 2, 1], 'back to the pre-merge most-used order');
+  assert.equal(session.undoCount, 1);
+  assert.equal(session.sortMethod, SORT_METHODS.FREQUENCY, 'the sort mode is restored too');
 });
 
 test('TDD_rgbToHsl anchors for the standard color sorts', () => {

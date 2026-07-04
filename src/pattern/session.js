@@ -38,7 +38,8 @@ export function createSession() {
   let source = null;   // { rgba, width, height }
   let params = null;   // last generation parameters with rows/cols resolved
   let pattern = null;  // current indexed pattern model (ED-3)
-  let history = [];    // undo snapshots of { pattern, params }, oldest first
+  let sortMethod = null; // the sort the palette is currently in, or null if none
+  let history = [];    // undo snapshots of { pattern, params, sortMethod }, oldest first
   let actionInProgress = false;
 
   // Every public mutating method is wrapped as one undoable *user action*: a
@@ -46,14 +47,27 @@ export function createSession() {
   // actually changed the pattern. Nested internal calls (e.g. mergeColors
   // delegating to changeColor) fall inside the outer action and never create
   // extra history entries, so one action always equals one undo step (README).
-  function undoable(method) {
+  //
+  // opts.reapplySort marks a palette manipulation: when the outermost such action
+  // finishes and a sort is active, the palette is re-sorted so it stays in the
+  // chosen order (README), tracking the edited color. The re-sort runs inside the
+  // action (actionInProgress still set), so it adds no separate undo step.
+  function undoable(method, { reapplySort = false } = {}) {
     return function (...args) {
-      const snapshot = actionInProgress ? null : { pattern, params };
-      actionInProgress = actionInProgress || snapshot !== null;
+      const outermost = !actionInProgress;
+      const snapshot = outermost ? { pattern, params, sortMethod } : null;
+      if (outermost) actionInProgress = true;
       try {
-        return method.apply(this, args);
+        let result = method.apply(this, args);
+        // Re-apply the active sort only when the edit actually changed the pattern,
+        // so a no-op edit stays a no-op (adds no undo step) even while sorted.
+        if (outermost && reapplySort && sortMethod !== null
+            && result && result.colorIndex != null && pattern !== snapshot.pattern) {
+          result = this.sortPalette(sortMethod, result.colorIndex);
+        }
+        return result;
       } finally {
-        if (snapshot !== null) {
+        if (outermost) {
           actionInProgress = false;
           if (snapshot.pattern !== null && pattern !== snapshot.pattern) {
             history.push(snapshot);
@@ -73,6 +87,7 @@ export function createSession() {
     });
     // Keep resolved grid dimensions so later adjustments reuse the same grid.
     params = { ...params, rows: pattern.rows, cols: pattern.cols };
+    sortMethod = null; // a freshly generated palette is no longer in a user sort
     return pattern;
   }
 
@@ -80,6 +95,7 @@ export function createSession() {
     get source() { return source; },
     get params() { return params; },
     get pattern() { return pattern; },
+    get sortMethod() { return sortMethod; },
     get undoCount() { return history.length; },
 
     /** Start a session from decoded upload pixels. Resets pattern and history. */
@@ -90,6 +106,7 @@ export function createSession() {
       source = { rgba, width, height };
       params = null;
       pattern = null;
+      sortMethod = null;
       history = [];
       actionInProgress = false;
     },
@@ -100,6 +117,7 @@ export function createSession() {
       const snapshot = history.pop();
       pattern = snapshot.pattern;
       params = snapshot.params;
+      sortMethod = snapshot.sortMethod;
       return pattern;
     },
 
@@ -154,7 +172,7 @@ export function createSession() {
       );
       pattern = { ...pattern, palette, counts, indices };
       return { pattern, colorIndex: mergedIndex };
-    }),
+    }, { reapplySort: true }),
 
     /**
      * Delete a palette color (README.md "Deleting a Color"): its squares are
@@ -168,7 +186,7 @@ export function createSession() {
       }
       const nearest = nearestNeighbors(pattern, paletteIndex, 1)[0]; // validates index
       return this.changeColor(paletteIndex, nearest.hex);
-    }),
+    }, { reapplySort: true }),
 
     /**
      * Merge two palette colors (README.md "Merging Colors") in one of the
@@ -212,7 +230,7 @@ export function createSession() {
         default:
           throw new RangeError(`unknown merge style: ${style}`);
       }
-    }),
+    }, { reapplySort: true }),
 
     /**
      * Reorder the palette by a SORT_METHODS entry (README.md: standard color
@@ -248,6 +266,7 @@ export function createSession() {
         counts: keyed.map(({ index }) => pattern.counts[index]),
         indices: pattern.indices.map((i) => oldToNew.get(i)),
       };
+      sortMethod = method; // the palette is now in this order; edits re-apply it (README)
       return { pattern, colorIndex: trackIndex === null ? null : oldToNew.get(trackIndex) };
     }),
 

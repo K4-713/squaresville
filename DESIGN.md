@@ -62,6 +62,26 @@ whose accessible name names both colors and the count, so the comparison is neve
 color-only. Clicking a chip behaves as before: it selects the neighbor, or
 completes an armed merge.
 
+## In-pane color picker (decided 2026-07-04)
+The detail pane's "color picker" is an in-page graphical picker: a hue ring
+surrounding a saturation/brightness square, always visible and preloaded with the
+selected color — a marker on the ring at the color's hue, a marker in the square
+at its saturation/brightness. Dragging either marker previews the new color live
+across the whole pane (swatch, hex readout, and every slider) and applies it to
+the palette on release; the hex field and the rgb/cmyk/hsb sliders remain as the
+precise inputs beside it.
+
+This replaces the OS/browser's native color-picker modal. That modal opens to a
+flat palette grid (its "custom color" spectrum editor is a step further in), and a
+web page can neither skip to that editor nor seed it with a starting color — so
+the graphical picker is brought in-page instead, where it is one glance away and
+always shows the current color.
+
+Markers are keyboard-focusable and adjust with the arrow keys, and are labeled;
+because hue, saturation, and brightness are equally settable through the HSB
+sliders and the hex field, the color stays fully editable without a pointer
+(Accessibility binding, above).
+
 ## Adjuster slider tracks (decided 2026-07-04)
 Every color-adjuster slider (rgb, cmyk, hsb) paints its track as a gradient scale:
 each position along the track shows the exact color the selected color would become

@@ -375,6 +375,54 @@ figcaption {
   font-size: 0.95rem;
 }
 
+/* DESIGN.md "In-pane color picker": a hue ring around a saturation/brightness
+   square, always visible and preloaded with the selected color. Handles are
+   positioned by percentage (geometry in src/ui/colorPicker.js), so no rendered
+   pixel size is needed and it survives being laid out while the pane is hidden. */
+.color-wheel {
+  position: relative;
+  width: 11rem;
+  height: 11rem;
+  margin: 0.3rem auto 0.5rem;
+  touch-action: none; /* dragging a handle must not scroll the pane */
+}
+
+.color-wheel-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: conic-gradient(from 0deg,
+    #FF0000, #FFFF00, #00FF00, #00FFFF, #0000FF, #FF00FF, #FF0000);
+}
+
+.color-wheel-square {
+  /* Inscribed in the ring's inner circle; the paper-colored gap reads as a ring. */
+  position: absolute;
+  inset: 2.55rem;
+  border-radius: 0.2rem;
+  background:
+    linear-gradient(to bottom, transparent, #000000),
+    linear-gradient(to right, #FFFFFF, transparent),
+    var(--wheel-hue-color, #FF0000);
+  box-shadow: 0 0 0 0.55rem var(--paper); /* punches the ring's hole */
+}
+
+.wheel-handle {
+  position: absolute;
+  width: 0.85rem;
+  height: 0.85rem;
+  border-radius: 50%;
+  background: var(--paper);
+  border: 2px solid var(--ink);
+  transform: translate(-50%, -50%); /* left/top are the handle's center */
+  cursor: pointer;
+}
+
+.wheel-handle:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+
 .slider-group {
   border: 1px solid var(--hairline);
   border-radius: 0.25rem;

@@ -24,7 +24,7 @@ Each individual color in the palette can be removed, changed to a different colo
 
 Additionally, when selecting a color, all that color's pixels in the pattern preview image will slowly pulse once.
 
-For convenience, the current color palette can be sorted in a variety of standard color sort methods, and also by frequency of that color in the current pattern image. When a color is selected, it will remain selected through a sorting operation.
+For convenience, the current color palette can be sorted in a variety of standard color sort methods, and also by frequency of that color in the current pattern image. When a color is selected, it will remain selected through a sorting operation. While a sort is active, the palette re-applies it after every change you make to the palette — adjusting a color, deleting, or merging — so it always stays in the order you chose.
 
 #### Deleting a Color
 Select the color you want to remove, and click on that color's delete button in the detail pane. The image will regenerate, reassigning that color's pixels to the nearest remaining color in the palette.
