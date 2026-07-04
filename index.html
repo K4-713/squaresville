@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Squaresville Pattern Generator</title>
   <link rel="stylesheet" href="styles.css">
+  <script src="vendor/write-excel-file-4.1.1.min.js"></script>
   <script type="module" src="src/ui/main.js"></script>
 </head>
 <body>
@@ -94,6 +95,28 @@
           </div>
         </figure>
       </div>
+      <section aria-labelledby="export-heading">
+        <h3 id="export-heading">Save the final pattern</h3>
+        <button type="button" id="generate-pattern-file" class="big-button">Generate Pattern</button>
+        <div id="export-options" hidden>
+          <div class="field">
+            <label for="group-size">Size of row/column groups</label>
+            <select id="group-size">
+              <option value="3" selected>3</option>
+              <option value="5">5</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="symbol-type">Symbol type</label>
+            <select id="symbol-type">
+              <option value="numeric" selected>Numeric</option>
+              <option value="symbols">True symbols</option>
+            </select>
+          </div>
+          <button type="button" id="confirm-export">Create spreadsheet</button>
+        </div>
+      </section>
+
       <section aria-labelledby="palette-heading">
         <h3 id="palette-heading">Color palette</h3>
         <div class="field">

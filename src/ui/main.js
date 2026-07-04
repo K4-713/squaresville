@@ -8,6 +8,7 @@
 import { patternToRgba, nearestNeighbors } from '../pattern/pattern.js';
 import { hexToRgb, rgbToHex, rgbToCmyk, cmykToRgb } from '../pattern/color.js';
 import { createSession, MERGE_STYLES } from '../pattern/session.js';
+import { buildWorkbook } from '../pattern/export.js';
 import { log } from './log.js';
 
 const el = (id) => document.getElementById(id);
@@ -432,6 +433,35 @@ el('adjust-picker').addEventListener('change', () => applyColorChange(el('adjust
 el('adjust-hex').addEventListener('change', () => {
   const entered = el('adjust-hex').value.trim();
   applyColorChange(entered.startsWith('#') ? entered : `#${entered}`);
+});
+
+// README "Saving The Final Pattern": the Generate Pattern button prompts for
+// group size and symbol type, then builds the tabbed spreadsheet. The vendored
+// write-excel-file bundle (window.writeXlsxFile) performs the .xlsx download
+// entirely in the browser (ED-1, ED-4).
+el('generate-pattern-file').addEventListener('click', () => {
+  if (!session.pattern) return;
+  el('export-options').hidden = !el('export-options').hidden;
+});
+
+el('confirm-export').addEventListener('click', async () => {
+  if (!session.pattern) return;
+  try {
+    const groupSize = parseInt(el('group-size').value, 10);
+    const symbolType = el('symbol-type').value;
+    const workbook = buildWorkbook(session.pattern, { groupSize, symbolType });
+    await window.writeXlsxFile([
+      { data: workbook.patternRows, columns: workbook.patternColumns, sheet: 'Pattern' },
+      { data: workbook.legendRows, columns: workbook.legendColumns, sheet: 'Color Legend' },
+    ]).toFile('squaresville-pattern.xlsx');
+    showStatus('Pattern spreadsheet created — check your downloads.');
+    log.info('pattern exported', {
+      groupSize, symbolType, colors: session.pattern.palette.length,
+    });
+  } catch (error) {
+    showStatus(`Could not create the spreadsheet: ${error.message}`);
+    log.warn('pattern export failed', error);
+  }
 });
 
 el('undo-action').addEventListener('click', handleUndo);

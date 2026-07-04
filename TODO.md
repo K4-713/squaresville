@@ -11,16 +11,11 @@ The MVP is being built in slices. Current slice in **bold**.
 6. ~~Fine-tuning: conversion styles (dithering, diffusion, nearest color)~~ ✅ done (ED-8: Bayer ordered dithering, Floyd–Steinberg diffusion, nearest default; browser-verified on a gradient)
 7. ~~Fine-tuning: undo (10 recent actions against palette, dimensions, conversion style)~~ ✅ done (one undo step per user action; Undo button + Ctrl/Cmd+Z; browser-verified)
 8. ~~Saving: right-click-saveable pattern image that survives re-upload round-trip~~ ✅ done (round-trips exactly, including zoomed saves and mid-edit saves; browser-verified end to end)
-9. Final export: "Generate Pattern" → tabbed .xlsx spreadsheet (pattern grid + color
-   legend, symbols, row/column groups). **Decided 2026-07-03:** use `write-excel-file`
-   (actively maintained, MIT, single small dep `fflate`), vendored as a static browser
-   bundle so ED-4's no-build/no-CDN posture holds; amend ED-4 + its TDD test, credit
-   both libraries in LICENSE.md, and go through the `dependency-change` skill when
-   this slice starts. (ExcelJS rejected: unmaintained since 2023. SheetJS rejected:
-   no cell styling in the free edition.) Cell fonts must be widely-installed ones
-   (e.g. Calibri/Arial) — .xlsx cannot embed fonts, so Delius would not travel.
-   "True symbols" should be Unicode geometric shapes that render in default fonts,
-   not symbol fonts like Wingdings (decided 2026-07-03).
+9. ~~Final export: "Generate Pattern" → tabbed .xlsx spreadsheet~~ ✅ done
+   (write-excel-file 4.1.1 vendored per the 2026-07-03 decision, ED-4 amended,
+   ED-9 fixes symbol assignment: Unicode geometric shapes / numeric, group
+   banding, legend with swatches + counts; validated byte-level with openpyxl
+   and via the real UI download)
 10. Deployment to squaresville.k4-713.com (and documented rollback path)
 
 ## Decided, not yet built (2026-07-03)

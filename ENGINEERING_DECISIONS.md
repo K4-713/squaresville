@@ -87,3 +87,17 @@ inputs always produce the same pattern.
 
 Rationale: these are the canonical, well-understood algorithms for each style;
 determinism keeps patterns reproducible and the round-trip promise intact.
+
+## ED-9: Export symbol assignment
+Symbols are assigned to palette colors in palette order, deterministically.
+"Numeric" symbols are 1-based integers rendered as strings ("1", "2", …).
+"True symbols" come from a fixed, ordered set of Unicode geometric shapes chosen
+to render in stock spreadsheet fonts (no symbol fonts like Wingdings — see the
+portability decision in TODO slice 9); if the palette is larger than the symbol
+set, the overflow entries fall back to numeric symbols. Within one export every
+color's symbol is unique. Spreadsheet cells never name a custom font — .xlsx
+cannot embed fonts, so styling sticks to universally-available defaults.
+
+Rationale: deterministic, collision-free symbols keep the printed pattern and
+legend trustworthy; Unicode geometric shapes survive Excel, LibreOffice, and
+Google Sheets alike.

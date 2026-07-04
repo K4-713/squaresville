@@ -119,6 +119,20 @@ button:hover {
   filter: brightness(1.05);
 }
 
+/* README: "the large Generate Pattern button under the pattern preview image" */
+.big-button {
+  font-size: 1.35rem;
+  padding: 0.75rem 2.25rem;
+}
+
+#export-options {
+  margin-top: 0.5rem;
+  padding: 0.75rem 1rem;
+  background: var(--pattern-paper);
+  border-radius: 0.4rem;
+  max-width: 42rem;
+}
+
 /* Focus is a solid high-contrast outline (DESIGN.md: never dashed, so it can't
    be confused with the decorative stitching). */
 button:focus-visible,

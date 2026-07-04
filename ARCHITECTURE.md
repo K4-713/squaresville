@@ -21,6 +21,8 @@ src/
     quantize.js     Median-cut palette generation + nearest-color mapping
     pattern.js      Orchestrates the above into the indexed pattern model (ED-3);
                     also nearest-neighbor lookup for the color detail pane
+    export.js       Builds the final spreadsheet data (pattern sheet + color
+                    legend) in write-excel-file's cell format; symbols per ED-9
     session.js      Editing-session state: source pixels, params, current pattern;
                     parameter changes regenerate from the source (ED-6), palette
                     edits act on the indexed model and merge duplicates (ED-7).
@@ -35,6 +37,8 @@ src/
   ui/
     main.js         DOM wiring: file upload, form, preview rendering, palette list
     log.js          Leveled logger; level is a localStorage setting, not code
+vendor/             Vendored third-party bundles (ED-4): write-excel-file, which
+                    performs the .xlsx download from data built by export.js
 test/
   TDD_*.test.js     Documentation-driven tests (node:test runner, zero deps)
 ```
