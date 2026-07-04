@@ -100,6 +100,22 @@
             <ol id="neighbor-list"></ol>
           </div>
           <div>
+            <h4>Remove or merge</h4>
+            <div class="field">
+              <button type="button" id="delete-color">Delete this color</button>
+            </div>
+            <fieldset class="merge-group">
+              <legend>Merge with another color</legend>
+              <label><input type="radio" name="merge-style" value="a-to-b" checked>
+                A→B — this color's squares become the color you pick</label>
+              <label><input type="radio" name="merge-style" value="b-to-a">
+                A←B — the picked color's squares become this color</label>
+              <label><input type="radio" name="merge-style" value="average">
+                Average — both become the average of the two</label>
+              <button type="button" id="merge-color">Merge Color</button>
+            </fieldset>
+          </div>
+          <div>
             <h4>Adjust this color</h4>
             <div class="field">
               <label for="adjust-picker">Color picker</label>

@@ -7,7 +7,7 @@
 
 import { patternToRgba, nearestNeighbors } from '../pattern/pattern.js';
 import { hexToRgb, rgbToHex, rgbToCmyk, cmykToRgb } from '../pattern/color.js';
-import { createSession } from '../pattern/session.js';
+import { createSession, MERGE_STYLES } from '../pattern/session.js';
 import { log } from './log.js';
 
 const el = (id) => document.getElementById(id);
@@ -19,6 +19,13 @@ const NEAREST_NEIGHBOR_DISPLAY_COUNT = 3;
 const session = createSession();
 let originalImageUrl = null;  // object URL for the uploaded file's preview
 let selectedColorIndex = null; // palette index shown in the color detail area
+let pendingMergeStyle = null;  // merge style while waiting for the second color
+
+const MERGE_STYLE_LABELS = {
+  [MERGE_STYLES.A_TO_B]: 'A→B',
+  [MERGE_STYLES.B_TO_A]: 'A←B',
+  [MERGE_STYLES.AVERAGE]: 'Average',
+};
 
 function showStatus(message) {
   el('status-message').textContent = message;
@@ -119,6 +126,53 @@ function selectColor(pattern, index) {
   pulseSelectedColor(pattern);
 }
 
+function updateMergeButton() {
+  el('merge-color').textContent = pendingMergeStyle ? 'Cancel merge' : 'Merge Color';
+}
+
+function cancelPendingMerge() {
+  pendingMergeStyle = null;
+  updateMergeButton();
+}
+
+// README "Merging Colors": with a style chosen and the merge armed, the next
+// color the user picks (any swatch or neighbor chip) completes the merge.
+function completeMerge(secondIndex) {
+  const before = session.pattern;
+  const firstHex = before.palette[selectedColorIndex];
+  const secondHex = before.palette[secondIndex];
+  try {
+    const style = pendingMergeStyle;
+    const { pattern, colorIndex } = session.mergeColors(selectedColorIndex, secondIndex, style);
+    cancelPendingMerge();
+    selectedColorIndex = colorIndex;
+    renderResults(pattern);
+    showStatus(`Merged ${firstHex} and ${secondHex} (${MERGE_STYLE_LABELS[style]}) into ${pattern.palette[colorIndex]}.`);
+    log.info('colors merged', { style, result: pattern.palette[colorIndex], colors: pattern.palette.length });
+  } catch (error) {
+    // e.g. picking the same color twice: report it and stay armed for another pick
+    showStatus(`Could not merge: ${error.message}`);
+    log.warn('merge failed', error);
+  }
+}
+
+function handleDeleteColor() {
+  if (selectedColorIndex === null) return;
+  const deletedHex = session.pattern.palette[selectedColorIndex];
+  try {
+    const { pattern, colorIndex } = session.deleteColor(selectedColorIndex);
+    cancelPendingMerge();
+    selectedColorIndex = colorIndex;
+    renderResults(pattern);
+    pulseSelectedColor(pattern);
+    showStatus(`Deleted ${deletedHex} — its squares joined ${pattern.palette[colorIndex]}.`);
+    log.info('color deleted', { deletedHex, absorbedBy: pattern.palette[colorIndex] });
+  } catch (error) {
+    showStatus(`Could not delete the color: ${error.message}`);
+    log.warn('color delete failed', error);
+  }
+}
+
 function renderNeighbors(pattern) {
   const list = el('neighbor-list');
   list.replaceChildren();
@@ -138,7 +192,9 @@ function renderNeighbors(pattern) {
     const label = document.createElement('span');
     label.textContent = `${neighbor.hex} — ${neighbor.count} ${neighbor.count === 1 ? 'square' : 'squares'}`;
     chip.append(swatch, label);
-    chip.addEventListener('click', () => selectColor(pattern, neighbor.index));
+    chip.addEventListener('click', () => (
+      pendingMergeStyle !== null ? completeMerge(neighbor.index) : selectColor(pattern, neighbor.index)
+    ));
     item.append(chip);
     list.append(item);
   }
@@ -170,6 +226,7 @@ function renderColorDetail(pattern) {
   el('detail-text').textContent = colorInfoText(pattern, selectedColorIndex);
   renderNeighbors(pattern);
   renderAdjuster(hex);
+  updateMergeButton();
   detail.hidden = false;
 }
 
@@ -205,7 +262,9 @@ function renderPalette(pattern) {
     swatch.setAttribute('aria-label', colorInfoText(pattern, i));
     swatch.setAttribute('aria-pressed', String(i === selectedColorIndex));
     swatch.addEventListener('click', () => {
-      if (selectedColorIndex === i) {
+      if (pendingMergeStyle !== null) {
+        completeMerge(i); // an armed merge captures the next color pick
+      } else if (selectedColorIndex === i) {
         selectedColorIndex = null; // click again to deselect
         renderPalette(pattern);
         renderColorDetail(pattern);
@@ -241,6 +300,7 @@ function handleGenerate(event) {
   }
   try {
     selectedColorIndex = null; // regeneration builds a new palette
+    cancelPendingMerge();
     const pattern = session.generate({
       cols: parseInt(el('pattern-cols').value, 10),
       rows: parseInt(el('pattern-rows').value, 10),
@@ -267,6 +327,7 @@ function handleTargetColors() {
   try {
     const pattern = session.setTargetColors(parseInt(el('target-colors').value, 10));
     selectedColorIndex = null; // regeneration builds a new palette
+    cancelPendingMerge();
     renderResults(pattern);
     showStatus('');
     log.info('target colors adjusted', {
@@ -297,6 +358,19 @@ for (const channel of ['r', 'g', 'b', 'c', 'm', 'y', 'k']) {
   slider.addEventListener('change', () =>
     applyColorChange('rgb'.includes(channel) ? rgbSliderValues() : cmykSliderValues()));
 }
+
+el('delete-color').addEventListener('click', handleDeleteColor);
+el('merge-color').addEventListener('click', () => {
+  if (selectedColorIndex === null) return;
+  if (pendingMergeStyle !== null) {
+    cancelPendingMerge();
+    showStatus('Merge cancelled.');
+    return;
+  }
+  pendingMergeStyle = document.querySelector('input[name="merge-style"]:checked').value;
+  updateMergeButton();
+  showStatus('Now select the color to merge with — click any swatch or nearby color.');
+});
 
 el('adjust-picker').addEventListener('change', () => applyColorChange(el('adjust-picker').value));
 el('adjust-hex').addEventListener('change', () => {

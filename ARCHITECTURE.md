@@ -23,7 +23,10 @@ src/
                     also nearest-neighbor lookup for the color detail pane
     session.js      Editing-session state: source pixels, params, current pattern;
                     parameter changes regenerate from the source (ED-6), palette
-                    edits act on the indexed model and merge duplicates (ED-7)
+                    edits act on the indexed model and merge duplicates (ED-7).
+                    Delete and all three merge styles reduce to changeColor:
+                    delete = change to nearest remaining; A->B = change A to B's
+                    color; Average = change both to the averaged color
   ui/
     main.js         DOM wiring: file upload, form, preview rendering, palette list
     log.js          Leveled logger; level is a localStorage setting, not code

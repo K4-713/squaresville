@@ -4,8 +4,15 @@
 // ED-6). Pure data + engine calls — no DOM — so the whole session is testable in
 // Node, and future fine-tuning features (undo, palette edits) share this seam.
 
-import { generatePattern } from './pattern.js';
+import { generatePattern, nearestNeighbors } from './pattern.js';
 import { rgbToHex, hexToRgb } from './color.js';
+
+/** Merge styles for mergeColors (README.md "Merging Colors"). */
+export const MERGE_STYLES = {
+  A_TO_B: 'a-to-b',   // A's squares -> B's color, A removed
+  B_TO_A: 'b-to-a',   // B's squares -> A's color, B removed
+  AVERAGE: 'average', // both -> the average color, both originals removed
+};
 
 export function createSession() {
   let source = null;   // { rgba, width, height }
@@ -90,6 +97,64 @@ export function createSession() {
       );
       pattern = { ...pattern, palette, counts, indices };
       return { pattern, colorIndex: mergedIndex };
+    },
+
+    /**
+     * Delete a palette color (README.md "Deleting a Color"): its squares are
+     * reassigned to the nearest remaining color. Reduces to a changeColor merge
+     * into that nearest color (ED-7).
+     */
+    deleteColor(paletteIndex) {
+      if (!pattern) throw new Error('generate a pattern before editing colors');
+      if (pattern.palette.length < 2) {
+        throw new Error('cannot delete the only color in the palette');
+      }
+      const nearest = nearestNeighbors(pattern, paletteIndex, 1)[0]; // validates index
+      return this.changeColor(paletteIndex, nearest.hex);
+    },
+
+    /**
+     * Merge two palette colors (README.md "Merging Colors") in one of the
+     * MERGE_STYLES. Every style reduces to changeColor merges (ED-7). Returns
+     * { pattern, colorIndex } with colorIndex at the surviving color.
+     */
+    mergeColors(firstIndex, secondIndex, style) {
+      if (!pattern) throw new Error('generate a pattern before merging colors');
+      for (const index of [firstIndex, secondIndex]) {
+        if (!Number.isInteger(index) || index < 0 || index >= pattern.palette.length) {
+          throw new RangeError(`merge index must be a valid palette index, got ${index}`);
+        }
+      }
+      if (firstIndex === secondIndex) {
+        throw new RangeError('choose two different colors to merge');
+      }
+
+      const hexA = pattern.palette[firstIndex];
+      const hexB = pattern.palette[secondIndex];
+      switch (style) {
+        case MERGE_STYLES.A_TO_B:
+          return this.changeColor(firstIndex, hexB);
+        case MERGE_STYLES.B_TO_A:
+          return this.changeColor(secondIndex, hexA);
+        case MERGE_STYLES.AVERAGE: {
+          const a = hexToRgb(hexA);
+          const b = hexToRgb(hexB);
+          const averageHex = rgbToHex(
+            Math.round((a.r + b.r) / 2),
+            Math.round((a.g + b.g) / 2),
+            Math.round((a.b + b.b) / 2),
+          );
+          this.changeColor(firstIndex, averageHex);
+          // A is now the average (possibly merged with an existing identical
+          // entry); pull B in too unless it already was the average color.
+          const remainingB = pattern.palette.indexOf(hexB);
+          return remainingB === -1
+            ? { pattern, colorIndex: pattern.palette.indexOf(averageHex) }
+            : this.changeColor(remainingB, averageHex);
+        }
+        default:
+          throw new RangeError(`unknown merge style: ${style}`);
+      }
     },
 
     /**

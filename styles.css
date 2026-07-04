@@ -265,6 +265,17 @@ figcaption {
   height: 1rem;
 }
 
+.merge-group {
+  border: 1px solid var(--hairline);
+  border-radius: 0.25rem;
+  margin-top: 0.5rem;
+}
+
+.merge-group label {
+  display: block;
+  margin-block: 0.25rem;
+}
+
 .slider-group {
   border: 1px solid var(--hairline);
   border-radius: 0.25rem;
