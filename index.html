@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Squaresville Pattern Generator</title>
+  <link rel="stylesheet" href="styles.css">
+  <script type="module" src="src/ui/main.js"></script>
+</head>
+<body>
+  <header>
+    <h1>Squaresville Pattern Generator</h1>
+    <p>Create patterns for quilting, cross-stitch, mosaics, or other physical objects from a digital image.</p>
+  </header>
+
+  <main>
+    <section aria-labelledby="upload-heading">
+      <h2 id="upload-heading">1. Upload an image</h2>
+      <label for="image-upload">Choose an image to start with</label>
+      <input type="file" id="image-upload" accept="image/*">
+    </section>
+
+    <section id="parameters-section" aria-labelledby="parameters-heading" hidden>
+      <h2 id="parameters-heading">2. Choose your pattern settings</h2>
+      <form id="parameters-form">
+        <div class="field">
+          <label for="item-type">What kind of item is this pattern for?</label>
+          <select id="item-type">
+            <option value="quilt">Quilt</option>
+            <option value="cross-stitch">Cross-stitch</option>
+            <option value="mosaic">Mosaic</option>
+            <option value="other">Something else</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="units">Measurement units</label>
+          <select id="units">
+            <option value="inches">Inches</option>
+            <option value="cm">Centimeters</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="square-size">Real-life size of each square</label>
+          <input type="number" id="square-size" value="1" min="0.01" step="any" required>
+        </div>
+        <div class="field">
+          <label for="pattern-cols">Columns of squares</label>
+          <input type="number" id="pattern-cols" min="1" step="1" required>
+        </div>
+        <div class="field">
+          <label for="pattern-rows">Rows of squares</label>
+          <input type="number" id="pattern-rows" min="1" step="1" required>
+        </div>
+        <div class="field">
+          <label for="max-colors">Maximum number of colors</label>
+          <input type="number" id="max-colors" value="16" min="1" step="1" required>
+        </div>
+        <button type="submit">Generate pattern</button>
+      </form>
+    </section>
+
+    <p id="status-message" role="status" aria-live="polite"></p>
+
+    <section id="results-section" aria-labelledby="results-heading" hidden>
+      <h2 id="results-heading">3. Your pattern</h2>
+      <p id="pattern-stats"></p>
+      <div class="field">
+        <label for="zoom-factor">Zoom</label>
+        <input type="number" id="zoom-factor" value="8" min="1" max="64" step="1">
+      </div>
+      <div class="side-by-side">
+        <figure>
+          <figcaption>Original image</figcaption>
+          <img id="original-image" alt="The image you uploaded">
+        </figure>
+        <figure>
+          <figcaption>Pattern preview (right-click to save)</figcaption>
+          <div class="pattern-scroller">
+            <img id="pattern-image" alt="Generated pattern preview">
+          </div>
+        </figure>
+      </div>
+      <section aria-labelledby="palette-heading">
+        <h3 id="palette-heading">Color palette</h3>
+        <ol id="palette-list"></ol>
+      </section>
+    </section>
+  </main>
+</body>
+</html>

@@ -1,0 +1,13 @@
+{
+  "name": "squaresville",
+  "version": "0.1.0",
+  "description": "Create patterns for quilting, cross-stitch, mosaics, or other physical objects from a digital image",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test 'test/**/TDD_*.test.js'"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
