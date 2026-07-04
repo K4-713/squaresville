@@ -12,6 +12,19 @@ function assertPositiveInteger(value, name) {
  * Compute the piece's physical dimensions and square count.
  * `squareSize` is the real-world edge length of one square, in `units`.
  */
+/**
+ * The proportionate counterpart of a rows/cols value (README.md: changing one
+ * changes the other so the pattern stays proportionate to the image). `value`
+ * is the changed count along the axis with `fromPixels` source pixels; returns
+ * the matching count along the axis with `toPixels`, at least 1.
+ */
+export function proportionalDimension(value, fromPixels, toPixels) {
+  assertPositiveInteger(value, 'value');
+  assertPositiveInteger(fromPixels, 'fromPixels');
+  assertPositiveInteger(toPixels, 'toPixels');
+  return Math.max(1, Math.round((value * toPixels) / fromPixels));
+}
+
 export function computeDimensions({ rows, cols, squareSize, units }) {
   assertPositiveInteger(rows, 'rows');
   assertPositiveInteger(cols, 'cols');

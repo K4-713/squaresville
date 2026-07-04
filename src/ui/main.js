@@ -6,6 +6,7 @@
 // all processing happens in this browser tab — nothing is uploaded anywhere (ED-1).
 
 import { patternToRgba, nearestNeighbors } from '../pattern/pattern.js';
+import { proportionalDimension } from '../pattern/dimensions.js';
 import { hexToRgb, rgbToHex, rgbToCmyk, cmykToRgb } from '../pattern/color.js';
 import { createSession, MERGE_STYLES } from '../pattern/session.js';
 import { buildWorkbook } from '../pattern/export.js';
@@ -474,6 +475,23 @@ document.addEventListener('keydown', (e) => {
     handleUndo();
   }
 });
+
+// README: changing columns or rows updates the other so the pattern stays
+// proportionate to the uploaded image. Programmatic .value updates fire no
+// input events, so the two listeners cannot loop.
+function linkProportionalInputs(changedId, otherId, axisOf) {
+  el(changedId).addEventListener('input', () => {
+    if (!session.source) return;
+    const value = parseInt(el(changedId).value, 10);
+    if (!Number.isInteger(value) || value <= 0) return; // wait for a usable number
+    const { from, to } = axisOf(session.source);
+    el(otherId).value = proportionalDimension(value, from, to);
+  });
+}
+linkProportionalInputs('pattern-cols', 'pattern-rows',
+  ({ width, height }) => ({ from: width, to: height }));
+linkProportionalInputs('pattern-rows', 'pattern-cols',
+  ({ width, height }) => ({ from: height, to: width }));
 
 el('image-upload').addEventListener('change', (e) => handleUpload(e.target.files[0]));
 el('parameters-form').addEventListener('submit', handleGenerate);
