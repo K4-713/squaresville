@@ -32,13 +32,17 @@ Rationale: palette editing, symbol assignment, and square counting all require e
 color identity; an indexed model makes those operations exact and cheap.
 
 ## ED-4: The app ships as self-contained static files
-The production app is plain static files (HTML/CSS/JS) with no build or compile step,
-no third-party runtime dependencies, and no references to external origins (no CDN
-scripts, fonts, analytics, or remote assets). Deploy is copying the files; rollback is
-restoring the previous files.
+The production app is plain static files (HTML/CSS/JS) with no build or compile step
+and no references to external origins (no CDN scripts, fonts, analytics, or remote
+assets). Third-party code is permitted **only** as vendored, version-pinned static
+files under `vendor/` (or `fonts/` for typefaces), each credited in LICENSE.md; npm
+`dependencies` stay empty. Deploy is copying the files; rollback is restoring the
+previous files.
 
-Rationale: easy deploy/rollback (project guideline), no supply-chain exposure in
-production code, and works with ED-1 (nothing external to call).
+Rationale: easy deploy/rollback (project guideline), a fully-auditable pinned
+supply chain, and works with ED-1 (nothing external to call at runtime).
+(Amended 2026-07-03: originally "no third-party runtime dependencies at all";
+relaxed to admit the vendored spreadsheet library chosen for the final export.)
 
 ## ED-5: Transparent source pixels composite over white
 When an uploaded image has transparency, each pixel is composited over a white

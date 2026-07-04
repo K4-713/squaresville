@@ -51,9 +51,19 @@ test('TDD_no source file contains network APIs or external URLs (ED-1, ED-4)', a
   }
 });
 
-test('TDD_production code has no third-party runtime dependencies (ED-4)', async () => {
+test('TDD_npm dependencies stay empty — third-party code is vendored only (ED-4)', async () => {
   const pkg = JSON.parse(await readFile(path.join(projectRoot, 'package.json'), 'utf8'));
   assert.deepEqual(pkg.dependencies ?? {}, {});
+});
+
+test('TDD_every vendored file is version-pinned and credited in LICENSE.md (ED-4)', async () => {
+  const license = await readFile(path.join(projectRoot, 'LICENSE.md'), 'utf8');
+  for (const dir of ['vendor', 'fonts']) {
+    for (const name of await readdir(path.join(projectRoot, dir))) {
+      assert.ok(license.includes(`${dir}/${name}`),
+        `${dir}/${name} is not credited in LICENSE.md`);
+    }
+  }
 });
 
 test('TDD_pattern model is indexed color with valid indices and no duplicate palette colors (ED-3)', () => {
