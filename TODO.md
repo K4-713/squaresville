@@ -10,7 +10,7 @@ The MVP is being built in slices. Current slice in **bold**.
 5. ~~Fine-tuning: palette sorting (standard color sorts + by frequency), selection survives sort~~ ✅ done (hue / lightness / saturation / frequency; image proven unchanged; browser-verified)
 6. ~~Fine-tuning: conversion styles (dithering, diffusion, nearest color)~~ ✅ done (ED-8: Bayer ordered dithering, Floyd–Steinberg diffusion, nearest default; browser-verified on a gradient)
 7. ~~Fine-tuning: undo (10 recent actions against palette, dimensions, conversion style)~~ ✅ done (one undo step per user action; Undo button + Ctrl/Cmd+Z; browser-verified)
-8. **Saving: right-click-saveable pattern image that survives re-upload round-trip** (engine round-trip already tested; needs a full browser-level save→re-upload verification)
+8. ~~Saving: right-click-saveable pattern image that survives re-upload round-trip~~ ✅ done (round-trips exactly, including zoomed saves and mid-edit saves; browser-verified end to end)
 9. Final export: "Generate Pattern" → tabbed .xlsx spreadsheet (pattern grid + color
    legend, symbols, row/column groups). **Decided 2026-07-03:** use `write-excel-file`
    (actively maintained, MIT, single small dep `fflate`), vendored as a static browser
@@ -32,6 +32,10 @@ The MVP is being built in slices. Current slice in **bold**.
   fully editable by the user. Needs its own slice after the MVP list above.
 
 ## Future ideas (explicitly not MVP)
+- **Resume helper:** a saved pattern image re-uploads at zoom-scaled pixel
+  dimensions (e.g. 12×12 pattern at zoom 9 = 108×108 file), so the user must
+  re-enter the original rows/columns. Detecting the uniform square grid in an
+  upload and suggesting the right rows/cols would make resuming one click.
 - **Printable PDF pattern export:** PDFs can embed the Delius font, so the printed
   pattern could carry the full Squaresville look (unlike .xlsx).
 - **Craft-specific blended colors:** colors halfway between two palette/material
