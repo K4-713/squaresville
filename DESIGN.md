@@ -52,6 +52,31 @@ readers or keyboard users.
   area when selected) — color is never the only signal.
 - Focus states use a solid (not dashed) high-contrast outline.
 
+## Nearest-neighbor comparison chips (decided 2026-07-04)
+Each nearest-neighbor entry in the color detail pane is a side-by-side comparison:
+two larger swatches that touch with no gap or divider — the selected color on the
+left, the neighbor on the right — so the difference between the likeliest merge
+candidates can be judged directly at the shared edge. The neighbor's hex code and
+square count remain visible as text on the chip, and each chip is a real button
+whose accessible name names both colors and the count, so the comparison is never
+color-only. Clicking a chip behaves as before: it selects the neighbor, or
+completes an armed merge.
+
+## Adjuster slider tracks (decided 2026-07-04)
+Every color-adjuster slider (rgb, cmyk, hsb) paints its track as a gradient scale:
+each position along the track shows the exact color the selected color would become
+if the thumb were dragged there, with every other channel held at its current value.
+Tracks repaint whenever the selected color changes **and live during a drag**
+(amended 2026-07-04): while a slider is mid-drag, every track, the hex/picker
+readouts, and the *other* slider families' positions follow the in-progress color.
+The dragged slider's own family keeps its positions — those values are the source
+of truth until release, so a transient extreme (e.g. brightness passing through 0)
+never wipes out the family's other channels mid-drag. The edit still applies to the
+palette on release. The scales always demonstrate what moving each slider will
+actually do — including honestly painting a flat track when a slider would change
+nothing (e.g. hue on a grey). Thumbs are high-contrast (ink ring on paper) and
+slider values remain visible as text, so position is never conveyed by color alone.
+
 ## Layout
 - **Compact editing workspace (decided 2026-07-03):** the results view is optimized
   so the palette can be manipulated while the pattern image stays in view — no

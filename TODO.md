@@ -4,7 +4,9 @@
 Feature slices 1–9 are complete (2026-07-03): the full README feature set is
 built, TDD_-tested, and browser-verified — see the git history for each slice.
 Layout/design tweaks so far: compact two-column editing workspace, proportional
-rows/columns linking, packed swatch palette.
+rows/columns linking, packed swatch palette; (2026-07-04) HSB sliders, gradient
+scales on all adjuster slider tracks with live mid-drag repaint, and side-by-side
+nearest-neighbor comparison chips.
 
 Remaining:
 

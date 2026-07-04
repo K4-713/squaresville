@@ -20,7 +20,7 @@ Each individual color in the palette can be removed, changed to a different colo
 * Information about the color, including a swatch and hex code
 * How many squares of that color are in the current pattern
 * The selected color's nearest neighbor colors in the current palette, and how many squares each of these has in the current pattern
-* A color adjuster tool to edit the color either by color picker, color sliders (rgb, cmyk), or directly via hex code
+* A color adjuster tool to edit the color either by color picker, color sliders (rgb, cmyk, hsb), or directly via hex code
 
 Additionally, when selecting a color, all that color's pixels in the pattern preview image will slowly pulse once.
 

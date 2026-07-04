@@ -91,3 +91,46 @@ export function cmykToRgb(c, m, y, k) {
     b: Math.round(255 * (1 - y / 100) * (1 - k / 100)),
   };
 }
+
+function assertHue(value) {
+  if (typeof value !== 'number' || !Number.isFinite(value) || value < 0 || value > 360) {
+    throw new RangeError(`hue must be a number 0-360 degrees, got ${value}`);
+  }
+}
+
+/** Convert RGB to HSB/HSV: h 0-360 degrees, s and b 0-100 (unrounded) for the slider adjuster. */
+export function rgbToHsb(r, g, b) {
+  assertChannel(r, 'red');
+  assertChannel(g, 'green');
+  assertChannel(b, 'blue');
+  const max = Math.max(r, g, b) / 255;
+  const min = Math.min(r, g, b) / 255;
+  const delta = max - min;
+  if (delta === 0) return { h: 0, s: 0, b: max * 100 }; // achromatic: hue is moot
+
+  const rn = r / 255;
+  const gn = g / 255;
+  const bn = b / 255;
+  let h;
+  if (max === rn) h = ((gn - bn) / delta) % 6;
+  else if (max === gn) h = (bn - rn) / delta + 2;
+  else h = (rn - gn) / delta + 4;
+  h *= 60;
+  if (h < 0) h += 360;
+  return { h, s: (delta / max) * 100, b: max * 100 };
+}
+
+/** Convert HSB (h 0-360 degrees, s/b 0-100, 360° wraps to 0°) back to integer RGB channels. */
+export function hsbToRgb(h, s, b) {
+  assertHue(h);
+  assertPercentage(s, 'saturation');
+  assertPercentage(b, 'brightness');
+  // Standard HSV formula: each RGB channel is the brightness, pulled down by the
+  // saturation according to how far the hue sits from that channel's 120° peak.
+  const channelAtOffset = (offset) => {
+    const position = (offset + h / 60) % 6;
+    const pull = Math.max(0, Math.min(position, 4 - position, 1));
+    return Math.round(255 * (b / 100) * (1 - (s / 100) * pull));
+  };
+  return { r: channelAtOffset(5), g: channelAtOffset(3), b: channelAtOffset(1) };
+}

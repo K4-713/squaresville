@@ -7,7 +7,10 @@
 
 import { patternToRgba, nearestNeighbors } from '../pattern/pattern.js';
 import { proportionalDimension } from '../pattern/dimensions.js';
-import { hexToRgb, rgbToHex, rgbToCmyk, cmykToRgb } from '../pattern/color.js';
+import {
+  hexToRgb, rgbToHex, rgbToCmyk, cmykToRgb, rgbToHsb, hsbToRgb,
+} from '../pattern/color.js';
+import { sliderGradientCss } from './adjusterGradients.js';
 import { createSession, MERGE_STYLES } from '../pattern/session.js';
 import { buildWorkbook } from '../pattern/export.js';
 import { log } from './log.js';
@@ -175,9 +178,13 @@ function handleDeleteColor() {
   }
 }
 
+// DESIGN.md "Nearest-neighbor comparison chips": each neighbor is shown as two
+// touching swatches — selected color left, neighbor right — so the difference
+// reads directly at the shared edge; hex + count stay visible as text.
 function renderNeighbors(pattern) {
   const list = el('neighbor-list');
   list.replaceChildren();
+  const selectedHex = pattern.palette[selectedColorIndex];
   const neighbors = nearestNeighbors(
     pattern, selectedColorIndex,
     Math.min(NEAREST_NEIGHBOR_DISPLAY_COUNT, Math.max(1, pattern.palette.length - 1)),
@@ -187,13 +194,21 @@ function renderNeighbors(pattern) {
     const chip = document.createElement('button');
     chip.type = 'button';
     chip.className = 'neighbor-chip';
-    const swatch = document.createElement('span');
-    swatch.className = 'swatch';
-    swatch.setAttribute('aria-hidden', 'true');
-    swatch.style.background = neighbor.hex;
+    const squares = `${neighbor.count} ${neighbor.count === 1 ? 'square' : 'squares'}`;
+    chip.setAttribute('aria-label',
+      `Compare selected ${selectedHex} with ${neighbor.hex} — ${squares}`);
+    const pair = document.createElement('span');
+    pair.className = 'compare-pair';
+    pair.setAttribute('aria-hidden', 'true');
+    for (const hex of [selectedHex, neighbor.hex]) {
+      const half = document.createElement('span');
+      half.className = 'compare-half';
+      half.style.background = hex;
+      pair.append(half);
+    }
     const label = document.createElement('span');
-    label.textContent = `${neighbor.hex} — ${neighbor.count} ${neighbor.count === 1 ? 'square' : 'squares'}`;
-    chip.append(swatch, label);
+    label.textContent = `${neighbor.hex} — ${squares}`;
+    chip.append(pair, label);
     chip.addEventListener('click', () => (
       pendingMergeStyle !== null ? completeMerge(neighbor.index) : selectColor(pattern, neighbor.index)
     ));
@@ -202,16 +217,32 @@ function renderNeighbors(pattern) {
   }
 }
 
-/** Fill the adjuster controls (picker, hex, rgb + cmyk sliders) from a hex color. */
-function renderAdjuster(hex) {
+/**
+ * Fill the adjuster controls (picker, hex, rgb/cmyk/hsb sliders) from a hex color.
+ * holdChannels: sliders whose positions must not be rewritten — during a drag the
+ * dragged family's values are the source of truth (DESIGN.md "Adjuster slider
+ * tracks": a transient extreme like brightness 0 must not wipe out the family's
+ * other channels). Their gradient tracks still repaint.
+ */
+function renderAdjuster(hex, holdChannels = []) {
   const { r, g, b } = hexToRgb(hex);
   el('adjust-picker').value = hex.toLowerCase(); // input[type=color] wants lowercase
   el('adjust-hex').value = hex;
   const cmyk = rgbToCmyk(r, g, b);
-  const channels = { r, g, b, c: cmyk.c, m: cmyk.m, y: cmyk.y, k: cmyk.k };
+  const hsb = rgbToHsb(r, g, b);
+  const channels = {
+    r, g, b,
+    c: cmyk.c, m: cmyk.m, y: cmyk.y, k: cmyk.k,
+    h: hsb.h, s: hsb.s, v: hsb.b, // 'v' is HSB brightness ('b' is blue's id)
+  };
   for (const [channel, value] of Object.entries(channels)) {
-    el(`adjust-${channel}`).value = Math.round(value);
-    el(`adjust-${channel}-value`).textContent = Math.round(value);
+    const slider = el(`adjust-${channel}`);
+    if (!holdChannels.includes(channel)) {
+      slider.value = Math.round(value);
+      el(`adjust-${channel}-value`).textContent = Math.round(value);
+    }
+    // DESIGN.md "Adjuster slider tracks": paint what moving this slider would do.
+    slider.style.setProperty('--track-gradient', sliderGradientCss(channel, hex));
   }
 }
 
@@ -362,8 +393,8 @@ function handleTargetColors() {
   }
 }
 
-// Adjuster wiring: sliders preview their value while dragging ('input') and apply
-// the color on release ('change'); picker and hex entry apply directly.
+// Adjuster wiring: sliders preview the in-progress color while dragging ('input')
+// and apply it on release ('change'); picker and hex entry apply directly.
 const rgbSliderValues = () =>
   rgbToHex(...['r', 'g', 'b'].map((ch) => parseInt(el(`adjust-${ch}`).value, 10)));
 
@@ -373,13 +404,29 @@ const cmykSliderValues = () => {
   return rgbToHex(r, g, b);
 };
 
-for (const channel of ['r', 'g', 'b', 'c', 'm', 'y', 'k']) {
-  const slider = el(`adjust-${channel}`);
-  slider.addEventListener('input', () => {
-    el(`adjust-${channel}-value`).textContent = slider.value;
-  });
-  slider.addEventListener('change', () =>
-    applyColorChange('rgb'.includes(channel) ? rgbSliderValues() : cmykSliderValues()));
+const hsbSliderValues = () => {
+  const [h, s, v] = ['h', 's', 'v'].map((ch) => parseInt(el(`adjust-${ch}`).value, 10));
+  const { r, g, b } = hsbToRgb(h, s, v);
+  return rgbToHex(r, g, b);
+};
+
+const sliderFamilies = [
+  { channels: ['r', 'g', 'b'], valuesToHex: rgbSliderValues },
+  { channels: ['c', 'm', 'y', 'k'], valuesToHex: cmykSliderValues },
+  { channels: ['h', 's', 'v'], valuesToHex: hsbSliderValues },
+];
+for (const { channels, valuesToHex } of sliderFamilies) {
+  for (const channel of channels) {
+    const slider = el(`adjust-${channel}`);
+    // DESIGN.md "Adjuster slider tracks": preview live while dragging — every
+    // track, the hex/picker readouts, and the other families' positions follow
+    // the in-progress color; the dragged family's own positions are held.
+    slider.addEventListener('input', () => {
+      el(`adjust-${channel}-value`).textContent = slider.value;
+      renderAdjuster(valuesToHex(), channels);
+    });
+    slider.addEventListener('change', () => applyColorChange(valuesToHex()));
+  }
 }
 
 // README: the pattern regenerates automatically according to the selected

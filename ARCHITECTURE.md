@@ -12,10 +12,10 @@ artifact.
 index.html          Entry page: upload control, parameter form, results layout
 styles.css          All styling; design tokens per DESIGN.md live in :root
 LICENSE.md          Project license + third-party attribution (fonts, libraries)
-fonts/              Vendored web fonts (Patrick Hand, OFL) — never CDN-loaded
+fonts/              Vendored web fonts (Delius, OFL) — never CDN-loaded
 src/
   pattern/          Pure pattern engine — no DOM, no I/O, plain data in/out
-    color.js        Hex/RGB conversion, color distance
+    color.js        Hex/RGB conversion, color distance, HSL/CMYK/HSB conversions
     dimensions.js   Real-world size and square-count math
     resample.js     Downsamples RGBA pixels to the pattern grid (box average)
     quantize.js     Median-cut palette generation + nearest-color mapping
@@ -37,6 +37,8 @@ src/
                     no-ops/failures add nothing)
   ui/
     main.js         DOM wiring: file upload, form, preview rendering, palette list
+    adjusterGradients.js  Pure gradient-scale stops/CSS for the adjuster slider
+                    tracks (DESIGN.md "Adjuster slider tracks")
     log.js          Leveled logger; level is a localStorage setting, not code
 vendor/             Vendored third-party bundles (ED-4): write-excel-file, which
                     performs the .xlsx download from data built by export.js
@@ -67,8 +69,13 @@ off — into an `<img>` (as a PNG data URL) so right-click → "Save image as" w
 everywhere. All state lives in the session object from `src/pattern/session.js`
 (plus an object URL for the original-image preview); the engine never touches the
 DOM. Fine-tuning controls (target color count, the color detail pane's adjuster)
-call session methods and re-render. The detail pane's RGB/CMYK sliders convert via
-color.js; the selection pulse is a second absolutely-positioned <img> overlaying
+call session methods and re-render. The detail pane's RGB/CMYK/HSB sliders convert
+via color.js; each slider's track is painted with a gradient scale from
+adjusterGradients.js, passed to the stylesheet through a per-slider CSS custom
+property (--track-gradient) and repainted on every detail-pane render and live
+on every slider 'input' event — mid-drag the pane re-renders from the dragged
+family's slider values while holding that family's positions untouched. The
+selection pulse is a second absolutely-positioned <img> overlaying
 the preview — white where the selected color's squares are — faded in and out once
 by a CSS animation (shortened under prefers-reduced-motion).
 

@@ -1,13 +1,18 @@
 // README.md "Adjust Individual Palette Colors": the detail pane shows the selected
 // color's swatch and hex, its square count, its nearest neighbor colors in the
-// current palette with their counts, and a color adjuster (picker, rgb/cmyk
+// current palette with their counts, and a color adjuster (picker, rgb/cmyk/hsb
 // sliders, or direct hex entry).
 // ENGINEERING_DECISIONS.md ED-7: palette edits act on the indexed model and merge
 // entries that become identical.
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { nearestNeighbors } from '../src/pattern/pattern.js';
-import { rgbToCmyk, cmykToRgb, rgbToHex, hexToRgb } from '../src/pattern/color.js';
+import {
+  rgbToCmyk, cmykToRgb, rgbToHsb, hsbToRgb, rgbToHex, hexToRgb,
+} from '../src/pattern/color.js';
 import { createSession } from '../src/pattern/session.js';
 import { blockImage } from './helpers/testImages.js';
 
@@ -112,4 +117,46 @@ test('TDD_cmyk conversions reject out-of-range garbage', () => {
   assert.throws(() => cmykToRgb(0, -5, 0, 0), RangeError);
   assert.throws(() => cmykToRgb(0, 0, NaN, 0), RangeError);
   assert.throws(() => rgbToCmyk(256, 0, 0), RangeError);
+});
+
+test('TDD_hsb conversions round-trip for the slider adjuster (README)', () => {
+  for (const hex of ['#000000', '#FFFFFF', '#FF0000', '#00FFFF', '#69603F', '#89CFC9']) {
+    const { r, g, b } = hexToRgb(hex);
+    const hsb = rgbToHsb(r, g, b);
+    assert.ok(hsb.h >= 0 && hsb.h <= 360, `hue out of range: ${hsb.h}`);
+    for (const channel of [hsb.s, hsb.b]) {
+      assert.ok(channel >= 0 && channel <= 100, `hsb channel out of range: ${channel}`);
+    }
+    const back = hsbToRgb(hsb.h, hsb.s, hsb.b);
+    assert.ok(Math.abs(back.r - r) <= 1 && Math.abs(back.g - g) <= 1 && Math.abs(back.b - b) <= 1,
+      `${hex} round-tripped to ${rgbToHex(back.r, back.g, back.b)}`);
+  }
+  // anchors
+  assert.deepEqual(rgbToHsb(0, 0, 0), { h: 0, s: 0, b: 0 });
+  assert.deepEqual(rgbToHsb(255, 255, 255), { h: 0, s: 0, b: 100 });
+  assert.deepEqual(rgbToHsb(255, 0, 0), { h: 0, s: 100, b: 100 });
+  assert.deepEqual(hsbToRgb(240, 100, 100), { r: 0, g: 0, b: 255 });
+  assert.deepEqual(hsbToRgb(360, 100, 100), hsbToRgb(0, 100, 100), '360° wraps to 0°');
+});
+
+test('TDD_hsb conversions reject out-of-range garbage', () => {
+  assert.throws(() => hsbToRgb(361, 0, 0), RangeError);
+  assert.throws(() => hsbToRgb(-1, 0, 0), RangeError);
+  assert.throws(() => hsbToRgb(0, 101, 0), RangeError);
+  assert.throws(() => hsbToRgb(0, 0, NaN), RangeError);
+  assert.throws(() => rgbToHsb(256, 0, 0), RangeError);
+});
+
+test('TDD_the detail pane offers rgb, cmyk, and hsb sliders (README)', async () => {
+  const projectRoot = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
+  const page = await readFile(path.join(projectRoot, 'index.html'), 'utf8');
+  const sliderRanges = [
+    ['adjust-r', 255], ['adjust-g', 255], ['adjust-b', 255],
+    ['adjust-c', 100], ['adjust-m', 100], ['adjust-y', 100], ['adjust-k', 100],
+    ['adjust-h', 360], ['adjust-s', 100], ['adjust-v', 100], // 'v': hsb brightness
+  ];
+  for (const [id, max] of sliderRanges) {
+    assert.match(page, new RegExp(`<input type="range" id="${id}" min="0" max="${max}"`),
+      `index.html must have a 0-${max} range slider #${id}`);
+  }
 });

@@ -1,6 +1,8 @@
 // DESIGN.md "Accessibility (binding)": WCAG AA contrast (>= 4.5:1) for all text
 // token/background pairings, robin-egg blue (--stitch) never used as text, and the
 // hand font (Delius) vendored locally (never a CDN — see also ED-4 and LICENSE.md).
+// Also the stylesheet-level commitments of DESIGN.md "Adjuster slider tracks" and
+// "Nearest-neighbor comparison chips".
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile, stat } from 'node:fs/promises';
@@ -73,4 +75,29 @@ test('TDD_vendored font is credited in LICENSE.md (dependency rule)', async () =
   const license = await readFile(path.join(projectRoot, 'LICENSE.md'), 'utf8');
   assert.match(license, /Delius/);
   assert.match(license, /Open Font License/);
+});
+
+test('TDD_adjuster slider tracks are painted from the gradient property (DESIGN.md)', () => {
+  // DESIGN.md "Adjuster slider tracks": the track itself is the gradient scale,
+  // fed per-slider through --track-gradient (see src/ui/adjusterGradients.js for
+  // the tested stop math and TDD_adjuster_gradients.test.js).
+  const sliderRule = stylesheet.match(/\.slider-group input\[type="range"\]\s*{[^}]+}/)?.[0];
+  assert.ok(sliderRule, 'styles.css must style the slider-group range inputs');
+  assert.match(sliderRule, /background:\s*var\(--track-gradient/,
+    'range tracks must paint from --track-gradient');
+  assert.match(sliderRule, /appearance:\s*none/,
+    'native track chrome must be removed so the gradient scale shows');
+});
+
+test('TDD_neighbor comparison swatches touch with no divider (DESIGN.md)', () => {
+  // DESIGN.md "Nearest-neighbor comparison chips": the two swatches meet flush so
+  // the color difference reads at the shared edge.
+  const pairRule = stylesheet.match(/\.compare-pair\s*{[^}]+}/)?.[0];
+  assert.ok(pairRule, 'styles.css must define the .compare-pair comparison block');
+  assert.match(pairRule, /display:\s*flex/);
+  assert.match(pairRule, /overflow:\s*hidden/,
+    'halves must meet flush inside the rounded border');
+  const halfRule = stylesheet.match(/\.compare-half\s*{[^}]+}/)?.[0];
+  assert.ok(halfRule, 'styles.css must define the .compare-half swatches');
+  assert.ok(!/border/.test(halfRule), 'no divider may separate the two swatches');
 });
