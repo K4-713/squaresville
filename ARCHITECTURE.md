@@ -30,7 +30,8 @@ src/
                     delete = change to nearest remaining; A->B = change A to B's
                     color; Average = change both to the averaged color. Sorting
                     reorders palette + counts and remaps indices, leaving the
-                    rendered image untouched. Undo keeps up to 10 snapshots of
+                    rendered image untouched (methods: hue, lightness,
+                    saturation, frequency). Undo keeps up to 10 snapshots of
                     { pattern, params }; every public mutator is wrapped so one
                     user action = one history entry (nested internal edits and
                     no-ops/failures add nothing)

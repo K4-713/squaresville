@@ -42,7 +42,8 @@ test('TDD_deleting a color reassigns its squares to the nearest remaining color 
   assertModelInvariants(pattern);
 });
 
-test('TDD_the last remaining color cannot be deleted', () => {
+// ENGINEERING_DECISIONS.md ED-10
+test('TDD_the last remaining color cannot be deleted (ED-10)', () => {
   const session = createSession();
   session.loadSource(blockImage([[[10, 20, 30]]], 2, 2));
   session.generate({ squareSize: 1, units: 'cm', maxColors: 4 });

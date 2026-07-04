@@ -101,3 +101,11 @@ cannot embed fonts, so styling sticks to universally-available defaults.
 Rationale: deterministic, collision-free symbols keep the printed pattern and
 legend trustworthy; Unicode geometric shapes survive Excel, LibreOffice, and
 Google Sheets alike.
+
+## ED-10: A pattern always retains at least one palette color
+Operations that would leave the palette empty are refused (currently: deleting
+the last remaining color). The indexed model (ED-3) is never valid with zero
+colors — every square must reference a palette entry.
+
+Rationale: an empty palette has no meaning for a physical pattern and would
+break every downstream operation (rendering, counts, export).

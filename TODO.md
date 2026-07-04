@@ -1,21 +1,13 @@
 # TODO
 
 ## MVP build plan (README.md is the spec)
-The MVP is being built in slices. Current slice in **bold**.
+Feature slices 1–9 are complete (2026-07-03): the full README feature set is
+built, TDD_-tested, and browser-verified — see the git history for each slice.
+Layout/design tweaks so far: compact two-column editing workspace, proportional
+rows/columns linking, packed swatch palette.
 
-1. ~~Core flow: upload → parameters → base pattern + palette + dimensions (README "How to use Squaresville")~~ ✅ done (includes a basic zoom control; browser-verified end-to-end)
-2. ~~Fine-tuning: adjust number of colors with automatic regeneration~~ ✅ done (session module + ED-6; browser-verified)
-3. ~~Fine-tuning: color detail pane (swatch, hex, counts, nearest neighbors, color adjuster)~~ ✅ done (includes the pulse-highlight on selection from README; ED-7; browser-verified)
-4. ~~Fine-tuning: delete a color; merge colors (A->B, A<-B, Average)~~ ✅ done (all reduce to the ED-7 changeColor machinery; browser-verified)
-5. ~~Fine-tuning: palette sorting (standard color sorts + by frequency), selection survives sort~~ ✅ done (hue / lightness / saturation / frequency; image proven unchanged; browser-verified)
-6. ~~Fine-tuning: conversion styles (dithering, diffusion, nearest color)~~ ✅ done (ED-8: Bayer ordered dithering, Floyd–Steinberg diffusion, nearest default; browser-verified on a gradient)
-7. ~~Fine-tuning: undo (10 recent actions against palette, dimensions, conversion style)~~ ✅ done (one undo step per user action; Undo button + Ctrl/Cmd+Z; browser-verified)
-8. ~~Saving: right-click-saveable pattern image that survives re-upload round-trip~~ ✅ done (round-trips exactly, including zoomed saves and mid-edit saves; browser-verified end to end)
-9. ~~Final export: "Generate Pattern" → tabbed .xlsx spreadsheet~~ ✅ done
-   (write-excel-file 4.1.1 vendored per the 2026-07-03 decision, ED-4 amended,
-   ED-9 fixes symbol assignment: Unicode geometric shapes / numeric, group
-   banding, legend with swatches + counts; validated byte-level with openpyxl
-   and via the real UI download)
+Remaining:
+
 10. Deployment to squaresville.k4-713.com (and documented rollback path)
 
 ## Decided, not yet built (2026-07-03)
@@ -27,6 +19,10 @@ The MVP is being built in slices. Current slice in **bold**.
   fully editable by the user. Needs its own slice after the MVP list above.
 
 ## Future ideas (explicitly not MVP)
+- **Automated browser tests:** UI-level behaviors and the DESIGN.md layout /
+  accessibility commitments are verified per-change with ad-hoc headless-Chrome
+  harnesses; a permanent browser test suite (e.g. Playwright) would make those
+  regression-proof. (Engine behavior is fully covered by the node:test suite.)
 - **Resume helper:** a saved pattern image re-uploads at zoom-scaled pixel
   dimensions (e.g. 12×12 pattern at zoom 9 = 108×108 file), so the user must
   re-enter the original rows/columns. Detecting the uniform square grid in an
