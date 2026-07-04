@@ -2,7 +2,7 @@
 // Squaresville") and the indexed pattern model it produces (ENGINEERING_DECISIONS.md
 // ED-3): { cols, rows, palette, indices, counts, dimensions, itemType }.
 
-import { rgbToHex, hexToRgb } from './color.js';
+import { rgbToHex, hexToRgb, colorDistanceSquared } from './color.js';
 import { computeDimensions } from './dimensions.js';
 import { resampleToGrid } from './resample.js';
 import { buildPalette, mapToNearest } from './quantize.js';
@@ -43,6 +43,33 @@ export function generatePattern({
     dimensions,
     itemType,
   };
+}
+
+/**
+ * The palette colors nearest to the one at colorIndex, closest first (README.md
+ * "Adjust Individual Palette Colors": the detail pane shows the selected color's
+ * nearest neighbors and how many squares each has). Returns at most neighborCount
+ * entries of { index, hex, count }.
+ */
+export function nearestNeighbors(pattern, colorIndex, neighborCount) {
+  const { palette, counts } = pattern;
+  if (!Number.isInteger(colorIndex) || colorIndex < 0 || colorIndex >= palette.length) {
+    throw new RangeError(`colorIndex must be a valid palette index, got ${colorIndex}`);
+  }
+  if (!Number.isInteger(neighborCount) || neighborCount <= 0) {
+    throw new RangeError(`neighborCount must be a positive integer, got ${neighborCount}`);
+  }
+  const selected = hexToRgb(palette[colorIndex]);
+  const selectedRgb = [selected.r, selected.g, selected.b];
+  return palette
+    .map((hex, index) => {
+      const { r, g, b } = hexToRgb(hex);
+      return { index, hex, count: counts[index], distance: colorDistanceSquared(selectedRgb, [r, g, b]) };
+    })
+    .filter((entry) => entry.index !== colorIndex)
+    .sort((a, b) => a.distance - b.distance || a.index - b.index)
+    .slice(0, neighborCount)
+    .map(({ index, hex, count }) => ({ index, hex, count }));
 }
 
 /**

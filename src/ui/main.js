@@ -5,11 +5,16 @@
 // regenerate automatically. All state lives in the session (src/pattern/session.js);
 // all processing happens in this browser tab — nothing is uploaded anywhere (ED-1).
 
-import { patternToRgba } from '../pattern/pattern.js';
+import { patternToRgba, nearestNeighbors } from '../pattern/pattern.js';
+import { hexToRgb, rgbToHex, rgbToCmyk, cmykToRgb } from '../pattern/color.js';
 import { createSession } from '../pattern/session.js';
 import { log } from './log.js';
 
 const el = (id) => document.getElementById(id);
+
+// How many nearest-neighbor colors the detail pane offers (README "Adjust
+// Individual Palette Colors" leaves the number open; display choice, not engine).
+const NEAREST_NEIGHBOR_DISPLAY_COUNT = 3;
 
 const session = createSession();
 let originalImageUrl = null;  // object URL for the uploaded file's preview
@@ -54,11 +59,10 @@ async function handleUpload(file) {
   }
 }
 
-/** Render the pattern at the current zoom into the preview <img> (right-click saveable). */
-function renderPatternPreview(pattern) {
-  const zoom = Math.max(1, parseInt(el('zoom-factor').value, 10) || 1);
-  const { rgba, width, height } = patternToRgba(pattern);
+const currentZoom = () => Math.max(1, parseInt(el('zoom-factor').value, 10) || 1);
 
+/** Scale raw RGBA (one pixel per square) up by zoom into a PNG data URL. */
+function rgbaToScaledPng(rgba, width, height, zoom) {
   const base = document.createElement('canvas');
   base.width = width;
   base.height = height;
@@ -70,7 +74,37 @@ function renderPatternPreview(pattern) {
   const context = scaled.getContext('2d');
   context.imageSmoothingEnabled = false; // keep squares crisp and colors exact
   context.drawImage(base, 0, 0, scaled.width, scaled.height);
-  el('pattern-image').src = scaled.toDataURL('image/png');
+  return scaled.toDataURL('image/png');
+}
+
+/** Render the pattern at the current zoom into the preview <img> (right-click saveable). */
+function renderPatternPreview(pattern) {
+  const { rgba, width, height } = patternToRgba(pattern);
+  el('pattern-image').src = rgbaToScaledPng(rgba, width, height, currentZoom());
+}
+
+/**
+ * Slowly pulse the selected color's squares once in the preview (README "Adjust
+ * Individual Palette Colors"): a white overlay marking those squares fades in
+ * and out via the pulse-once CSS animation.
+ */
+function pulseSelectedColor(pattern) {
+  if (selectedColorIndex === null) return;
+  const { cols, rows, indices } = pattern;
+  const rgba = new Uint8ClampedArray(cols * rows * 4);
+  for (let i = 0; i < indices.length; i++) {
+    if (indices[i] === selectedColorIndex) {
+      rgba[i * 4] = 255;
+      rgba[i * 4 + 1] = 255;
+      rgba[i * 4 + 2] = 255;
+      rgba[i * 4 + 3] = 210;
+    }
+  }
+  const overlay = el('pattern-highlight');
+  overlay.src = rgbaToScaledPng(rgba, cols, rows, currentZoom());
+  overlay.classList.remove('pulsing');
+  void overlay.offsetWidth; // restart the animation even for repeated selections
+  overlay.classList.add('pulsing');
 }
 
 const colorInfoText = (pattern, i) => {
@@ -78,7 +112,52 @@ const colorInfoText = (pattern, i) => {
   return `${pattern.palette[i]} — ${count} ${count === 1 ? 'square' : 'squares'}`;
 };
 
-/** Fill (or hide) the color detail area for the selected swatch. */
+function selectColor(pattern, index) {
+  selectedColorIndex = index;
+  renderPalette(pattern);
+  renderColorDetail(pattern);
+  pulseSelectedColor(pattern);
+}
+
+function renderNeighbors(pattern) {
+  const list = el('neighbor-list');
+  list.replaceChildren();
+  const neighbors = nearestNeighbors(
+    pattern, selectedColorIndex,
+    Math.min(NEAREST_NEIGHBOR_DISPLAY_COUNT, Math.max(1, pattern.palette.length - 1)),
+  );
+  for (const neighbor of neighbors) {
+    const item = document.createElement('li');
+    const chip = document.createElement('button');
+    chip.type = 'button';
+    chip.className = 'neighbor-chip';
+    const swatch = document.createElement('span');
+    swatch.className = 'swatch';
+    swatch.setAttribute('aria-hidden', 'true');
+    swatch.style.background = neighbor.hex;
+    const label = document.createElement('span');
+    label.textContent = `${neighbor.hex} — ${neighbor.count} ${neighbor.count === 1 ? 'square' : 'squares'}`;
+    chip.append(swatch, label);
+    chip.addEventListener('click', () => selectColor(pattern, neighbor.index));
+    item.append(chip);
+    list.append(item);
+  }
+}
+
+/** Fill the adjuster controls (picker, hex, rgb + cmyk sliders) from a hex color. */
+function renderAdjuster(hex) {
+  const { r, g, b } = hexToRgb(hex);
+  el('adjust-picker').value = hex.toLowerCase(); // input[type=color] wants lowercase
+  el('adjust-hex').value = hex;
+  const cmyk = rgbToCmyk(r, g, b);
+  const channels = { r, g, b, c: cmyk.c, m: cmyk.m, y: cmyk.y, k: cmyk.k };
+  for (const [channel, value] of Object.entries(channels)) {
+    el(`adjust-${channel}`).value = Math.round(value);
+    el(`adjust-${channel}-value`).textContent = Math.round(value);
+  }
+}
+
+/** Fill (or hide) the color detail pane for the selected swatch. */
 function renderColorDetail(pattern) {
   const detail = el('color-detail');
   if (selectedColorIndex === null || selectedColorIndex >= pattern.palette.length) {
@@ -86,9 +165,28 @@ function renderColorDetail(pattern) {
     detail.hidden = true;
     return;
   }
-  el('detail-swatch').style.background = pattern.palette[selectedColorIndex];
+  const hex = pattern.palette[selectedColorIndex];
+  el('detail-swatch').style.background = hex;
   el('detail-text').textContent = colorInfoText(pattern, selectedColorIndex);
+  renderNeighbors(pattern);
+  renderAdjuster(hex);
   detail.hidden = false;
+}
+
+// README "Adjust Individual Palette Colors": apply an edit from any adjuster
+// control. The session merges entries if the new color duplicates one (ED-7).
+function applyColorChange(newHex) {
+  if (selectedColorIndex === null) return;
+  try {
+    const { pattern, colorIndex } = session.changeColor(selectedColorIndex, newHex);
+    selectedColorIndex = colorIndex;
+    renderResults(pattern);
+    showStatus('');
+    log.info('palette color changed', { colorIndex, newHex, colors: pattern.palette.length });
+  } catch (error) {
+    showStatus(`Could not change the color: ${error.message}`);
+    log.warn('color change failed', error);
+  }
 }
 
 // DESIGN.md "Palette display": packed plain swatches; hex and count appear only on
@@ -107,9 +205,13 @@ function renderPalette(pattern) {
     swatch.setAttribute('aria-label', colorInfoText(pattern, i));
     swatch.setAttribute('aria-pressed', String(i === selectedColorIndex));
     swatch.addEventListener('click', () => {
-      selectedColorIndex = selectedColorIndex === i ? null : i; // click again to deselect
-      renderPalette(pattern);
-      renderColorDetail(pattern);
+      if (selectedColorIndex === i) {
+        selectedColorIndex = null; // click again to deselect
+        renderPalette(pattern);
+        renderColorDetail(pattern);
+      } else {
+        selectColor(pattern, i);
+      }
     });
     item.append(swatch);
     list.append(item);
@@ -175,6 +277,32 @@ function handleTargetColors() {
     log.warn('color adjustment failed', error);
   }
 }
+
+// Adjuster wiring: sliders preview their value while dragging ('input') and apply
+// the color on release ('change'); picker and hex entry apply directly.
+const rgbSliderValues = () =>
+  rgbToHex(...['r', 'g', 'b'].map((ch) => parseInt(el(`adjust-${ch}`).value, 10)));
+
+const cmykSliderValues = () => {
+  const [c, m, y, k] = ['c', 'm', 'y', 'k'].map((ch) => parseInt(el(`adjust-${ch}`).value, 10));
+  const { r, g, b } = cmykToRgb(c, m, y, k);
+  return rgbToHex(r, g, b);
+};
+
+for (const channel of ['r', 'g', 'b', 'c', 'm', 'y', 'k']) {
+  const slider = el(`adjust-${channel}`);
+  slider.addEventListener('input', () => {
+    el(`adjust-${channel}-value`).textContent = slider.value;
+  });
+  slider.addEventListener('change', () =>
+    applyColorChange('rgb'.includes(channel) ? rgbSliderValues() : cmykSliderValues()));
+}
+
+el('adjust-picker').addEventListener('change', () => applyColorChange(el('adjust-picker').value));
+el('adjust-hex').addEventListener('change', () => {
+  const entered = el('adjust-hex').value.trim();
+  applyColorChange(entered.startsWith('#') ? entered : `#${entered}`);
+});
 
 el('image-upload').addEventListener('change', (e) => handleUpload(e.target.files[0]));
 el('parameters-form').addEventListener('submit', handleGenerate);

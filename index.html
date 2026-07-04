@@ -76,7 +76,10 @@
         <figure>
           <figcaption>Pattern preview (right-click to save)</figcaption>
           <div class="pattern-scroller">
-            <img id="pattern-image" alt="Generated pattern preview">
+            <div class="pattern-stack">
+              <img id="pattern-image" alt="Generated pattern preview">
+              <img id="pattern-highlight" alt="" aria-hidden="true">
+            </div>
           </div>
         </figure>
       </div>
@@ -88,8 +91,66 @@
         </div>
         <ol id="palette-list" aria-label="Pattern colors — select one for details"></ol>
         <div id="color-detail" hidden>
-          <span class="swatch" id="detail-swatch" aria-hidden="true"></span>
-          <span id="detail-text"></span>
+          <p class="detail-summary">
+            <span class="swatch" id="detail-swatch" aria-hidden="true"></span>
+            <span id="detail-text"></span>
+          </p>
+          <div>
+            <h4>Nearest colors in the palette</h4>
+            <ol id="neighbor-list"></ol>
+          </div>
+          <div>
+            <h4>Adjust this color</h4>
+            <div class="field">
+              <label for="adjust-picker">Color picker</label>
+              <input type="color" id="adjust-picker">
+            </div>
+            <div class="field">
+              <label for="adjust-hex">Hex code</label>
+              <input type="text" id="adjust-hex" spellcheck="false" maxlength="7" inputmode="text">
+            </div>
+            <fieldset class="slider-group">
+              <legend>RGB sliders</legend>
+              <div class="field">
+                <label for="adjust-r">Red</label>
+                <input type="range" id="adjust-r" min="0" max="255" step="1">
+                <output for="adjust-r" id="adjust-r-value"></output>
+              </div>
+              <div class="field">
+                <label for="adjust-g">Green</label>
+                <input type="range" id="adjust-g" min="0" max="255" step="1">
+                <output for="adjust-g" id="adjust-g-value"></output>
+              </div>
+              <div class="field">
+                <label for="adjust-b">Blue</label>
+                <input type="range" id="adjust-b" min="0" max="255" step="1">
+                <output for="adjust-b" id="adjust-b-value"></output>
+              </div>
+            </fieldset>
+            <fieldset class="slider-group">
+              <legend>CMYK sliders</legend>
+              <div class="field">
+                <label for="adjust-c">Cyan</label>
+                <input type="range" id="adjust-c" min="0" max="100" step="1">
+                <output for="adjust-c" id="adjust-c-value"></output>
+              </div>
+              <div class="field">
+                <label for="adjust-m">Magenta</label>
+                <input type="range" id="adjust-m" min="0" max="100" step="1">
+                <output for="adjust-m" id="adjust-m-value"></output>
+              </div>
+              <div class="field">
+                <label for="adjust-y">Yellow</label>
+                <input type="range" id="adjust-y" min="0" max="100" step="1">
+                <output for="adjust-y" id="adjust-y-value"></output>
+              </div>
+              <div class="field">
+                <label for="adjust-k">Black</label>
+                <input type="range" id="adjust-k" min="0" max="100" step="1">
+                <output for="adjust-k" id="adjust-k-value"></output>
+              </div>
+            </fieldset>
+          </div>
         </div>
       </section>
     </section>

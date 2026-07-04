@@ -5,6 +5,7 @@
 // Node, and future fine-tuning features (undo, palette edits) share this seam.
 
 import { generatePattern } from './pattern.js';
+import { rgbToHex, hexToRgb } from './color.js';
 
 export function createSession() {
   let source = null;   // { rgba, width, height }
@@ -43,6 +44,52 @@ export function createSession() {
       if (!source) throw new Error('load a source image before generating');
       params = { ...generationParams };
       return regenerate();
+    },
+
+    /**
+     * Change one palette color to a new value (README.md "Adjust Individual
+     * Palette Colors"). A palette edit, not a regeneration: squares keep their
+     * assignments (ED-7). If the new color duplicates another palette entry, the
+     * two entries merge (indices remapped, counts summed) so the ED-3 no-duplicates
+     * invariant holds. Returns { pattern, colorIndex } where colorIndex is the
+     * edited color's position in the resulting palette.
+     */
+    changeColor(paletteIndex, newHex) {
+      if (!pattern) throw new Error('generate a pattern before editing colors');
+      if (!Number.isInteger(paletteIndex) || paletteIndex < 0 || paletteIndex >= pattern.palette.length) {
+        throw new RangeError(`paletteIndex must be a valid palette index, got ${paletteIndex}`);
+      }
+      const { r, g, b } = hexToRgb(newHex); // throws RangeError on garbage
+      const canonical = rgbToHex(r, g, b);  // canonical uppercase form (ED-2)
+
+      if (canonical === pattern.palette[paletteIndex]) {
+        return { pattern, colorIndex: paletteIndex }; // no-op
+      }
+
+      const duplicateIndex = pattern.palette.indexOf(canonical);
+      if (duplicateIndex === -1) {
+        const palette = [...pattern.palette];
+        palette[paletteIndex] = canonical;
+        pattern = { ...pattern, palette };
+        return { pattern, colorIndex: paletteIndex };
+      }
+
+      // Merge the edited entry into the existing identical one (ED-7).
+      const oldToNew = new Map();
+      pattern.palette.forEach((_, oldIndex) => {
+        if (oldIndex !== paletteIndex) {
+          oldToNew.set(oldIndex, oldIndex - (oldIndex > paletteIndex ? 1 : 0));
+        }
+      });
+      const mergedIndex = oldToNew.get(duplicateIndex);
+      const palette = pattern.palette.filter((_, i) => i !== paletteIndex);
+      const counts = pattern.counts.filter((_, i) => i !== paletteIndex);
+      counts[mergedIndex] += pattern.counts[paletteIndex];
+      const indices = pattern.indices.map(
+        (i) => (i === paletteIndex ? mergedIndex : oldToNew.get(i)),
+      );
+      pattern = { ...pattern, palette, counts, indices };
+      return { pattern, colorIndex: mergedIndex };
     },
 
     /**

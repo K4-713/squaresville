@@ -57,3 +57,13 @@ raising it again restores color detail rather than staying degraded.
 
 Rationale: quantization is lossy; chaining regenerations off the pattern would
 compound the loss and make fine-tuning controls feel broken (a one-way ratchet).
+
+## ED-7: Palette edits preserve the indexed model; identical colors merge
+Palette edits (changing a color's value, and later delete/merge operations) act
+directly on the indexed pattern model — they never trigger regeneration from the
+source. Every edit must uphold the ED-3 invariants; in particular, if an edit
+would give two palette entries the same color, the entries are merged into one
+(indices remapped, square counts summed) so the palette never contains duplicates.
+
+Rationale: a palette with two identical colors is meaningless in a physical
+pattern (same fabric/thread/tile) and would break symbol assignment at export.
