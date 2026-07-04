@@ -93,21 +93,117 @@ export function buildPalette(rgbaGrid, maxColors) {
   return boxes.map(averageColor);
 }
 
-/** Map every RGBA square to the index of its nearest palette color. */
+/** Index of the palette color nearest to one [r, g, b] value. */
+function nearestIndex(rgb, palette) {
+  let best = 0;
+  let bestDistance = Infinity;
+  for (let p = 0; p < palette.length; p++) {
+    const distance = colorDistanceSquared(rgb, palette[p]);
+    if (distance < bestDistance) {
+      bestDistance = distance;
+      best = p;
+    }
+  }
+  return best;
+}
+
+/** Map every RGBA square to the index of its nearest palette color (ED-8). */
 export function mapToNearest(rgbaGrid, palette) {
   const indices = new Array(rgbaGrid.length / 4);
   for (let i = 0; i < rgbaGrid.length; i += 4) {
-    const square = [rgbaGrid[i], rgbaGrid[i + 1], rgbaGrid[i + 2]];
-    let best = 0;
-    let bestDistance = Infinity;
-    for (let p = 0; p < palette.length; p++) {
-      const distance = colorDistanceSquared(square, palette[p]);
-      if (distance < bestDistance) {
-        bestDistance = distance;
-        best = p;
-      }
-    }
-    indices[i / 4] = best;
+    indices[i / 4] = nearestIndex([rgbaGrid[i], rgbaGrid[i + 1], rgbaGrid[i + 2]], palette);
   }
   return indices;
+}
+
+// The image conversion styles (README "Fine-tuning your Squaresville pattern";
+// algorithms fixed by ED-8).
+export const CONVERSION_STYLES = {
+  NEAREST: 'nearest',
+  DITHERING: 'dithering',
+  DIFFUSION: 'diffusion',
+};
+
+// Standard 4x4 Bayer threshold matrix for ordered dithering (ED-8).
+const BAYER_4X4 = [
+  [0, 8, 2, 10],
+  [12, 4, 14, 6],
+  [3, 11, 1, 9],
+  [15, 7, 13, 5],
+];
+// How far (in channel units) the Bayer thresholds push a value before the
+// nearest-color lookup; the classic +/- spread/2 around the true value.
+const ORDERED_DITHER_SPREAD = 48;
+
+const clampChannel = (value) => Math.max(0, Math.min(255, value));
+
+/** Ordered (Bayer 4x4) dithering: threshold-shift each square, then map (ED-8). */
+export function mapOrderedDither(rgbaGrid, palette, cols, rows) {
+  const indices = new Array(cols * rows);
+  for (let y = 0; y < rows; y++) {
+    for (let x = 0; x < cols; x++) {
+      const i = (y * cols + x) * 4;
+      const offset = ((BAYER_4X4[y % 4][x % 4] + 0.5) / 16 - 0.5) * ORDERED_DITHER_SPREAD;
+      indices[y * cols + x] = nearestIndex([
+        clampChannel(rgbaGrid[i] + offset),
+        clampChannel(rgbaGrid[i + 1] + offset),
+        clampChannel(rgbaGrid[i + 2] + offset),
+      ], palette);
+    }
+  }
+  return indices;
+}
+
+// Floyd-Steinberg weights: right 7/16, down-left 3/16, down 5/16, down-right 1/16.
+const FLOYD_STEINBERG = [
+  { dx: 1, dy: 0, weight: 7 / 16 },
+  { dx: -1, dy: 1, weight: 3 / 16 },
+  { dx: 0, dy: 1, weight: 5 / 16 },
+  { dx: 1, dy: 1, weight: 1 / 16 },
+];
+
+/** Floyd-Steinberg error diffusion in scan order (ED-8). */
+export function mapErrorDiffusion(rgbaGrid, palette, cols, rows) {
+  // Work on floats so pushed error accumulates without clamping artifacts.
+  const working = new Float64Array(cols * rows * 3);
+  for (let i = 0; i < cols * rows; i++) {
+    working[i * 3] = rgbaGrid[i * 4];
+    working[i * 3 + 1] = rgbaGrid[i * 4 + 1];
+    working[i * 3 + 2] = rgbaGrid[i * 4 + 2];
+  }
+
+  const indices = new Array(cols * rows);
+  for (let y = 0; y < rows; y++) {
+    for (let x = 0; x < cols; x++) {
+      const square = y * cols + x;
+      const value = [
+        clampChannel(working[square * 3]),
+        clampChannel(working[square * 3 + 1]),
+        clampChannel(working[square * 3 + 2]),
+      ];
+      const chosen = nearestIndex(value, palette);
+      indices[square] = chosen;
+
+      for (const { dx, dy, weight } of FLOYD_STEINBERG) {
+        const nx = x + dx;
+        const ny = y + dy;
+        if (nx < 0 || nx >= cols || ny >= rows) continue;
+        const neighbor = (ny * cols + nx) * 3;
+        for (let channel = 0; channel < 3; channel++) {
+          working[neighbor + channel] += (value[channel] - palette[chosen][channel]) * weight;
+        }
+      }
+    }
+  }
+  return indices;
+}
+
+/** Dispatch a conversion style to its mapping algorithm (ED-8). */
+export function mapWithStyle(rgbaGrid, palette, style, cols, rows) {
+  switch (style) {
+    case CONVERSION_STYLES.NEAREST: return mapToNearest(rgbaGrid, palette);
+    case CONVERSION_STYLES.DITHERING: return mapOrderedDither(rgbaGrid, palette, cols, rows);
+    case CONVERSION_STYLES.DIFFUSION: return mapErrorDiffusion(rgbaGrid, palette, cols, rows);
+    default: throw new RangeError(`unknown conversion style: ${style}`);
+  }
 }

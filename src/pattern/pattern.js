@@ -5,25 +5,27 @@
 import { rgbToHex, hexToRgb, colorDistanceSquared } from './color.js';
 import { computeDimensions } from './dimensions.js';
 import { resampleToGrid } from './resample.js';
-import { buildPalette, mapToNearest } from './quantize.js';
+import { buildPalette, mapWithStyle, CONVERSION_STYLES } from './quantize.js';
 
 /**
  * Generate a base pattern from an uploaded image.
  *
  * Required: rgba (Uint8ClampedArray), width, height (source pixels), squareSize,
  * units, maxColors. Optional: rows/cols (default: the image's pixel dimensions,
- * per README.md), itemType (stored with the pattern, e.g. "quilt").
+ * per README.md), conversionStyle (a CONVERSION_STYLES value, default nearest
+ * per ED-8), itemType (stored with the pattern, e.g. "quilt").
  */
 export function generatePattern({
   rgba, width, height,
   rows = height, cols = width,
   squareSize, units, maxColors,
+  conversionStyle = CONVERSION_STYLES.NEAREST,
   itemType = null,
 }) {
   const dimensions = computeDimensions({ rows, cols, squareSize, units });
   const grid = resampleToGrid(rgba, width, height, cols, rows);
   const rawPalette = buildPalette(grid, maxColors);
-  const rawIndices = mapToNearest(grid, rawPalette);
+  const rawIndices = mapWithStyle(grid, rawPalette, conversionStyle, cols, rows);
 
   // Keep only colors actually present in the pattern (README: the palette shows
   // "all the colors present in the pattern image"), remapping indices to match.

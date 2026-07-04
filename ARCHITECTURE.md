@@ -45,7 +45,9 @@ Pipeline for base pattern generation:
 1. `resample.js` box-averages the source RGBA pixels into one RGBA value per
    pattern square (cols × rows). Transparent pixels are composited over white first.
 2. `quantize.js` builds a palette of at most `maxColors` colors using median-cut,
-   then maps every square to its nearest palette color (Euclidean RGB distance).
+   then maps every square to a palette color via the selected conversion style
+   (ED-8): nearest Euclidean RGB (default), 4×4 Bayer ordered dithering, or
+   Floyd–Steinberg error diffusion.
 3. `pattern.js` assembles the indexed pattern model (ED-3), drops unused palette
    entries, and computes per-color square counts and real-world dimensions.
 

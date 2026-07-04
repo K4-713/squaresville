@@ -359,6 +359,24 @@ for (const channel of ['r', 'g', 'b', 'c', 'm', 'y', 'k']) {
     applyColorChange('rgb'.includes(channel) ? rgbSliderValues() : cmykSliderValues()));
 }
 
+// README: the pattern regenerates automatically according to the selected
+// conversion style (algorithms per ED-8; regenerates from source per ED-6).
+el('conversion-style').addEventListener('change', () => {
+  if (!session.pattern) return;
+  try {
+    const pattern = session.setConversionStyle(el('conversion-style').value);
+    selectedColorIndex = null; // regeneration can reshape the palette
+    cancelPendingMerge();
+    el('target-colors').value = pattern.palette.length;
+    renderResults(pattern);
+    showStatus('');
+    log.info('conversion style changed', { style: el('conversion-style').value });
+  } catch (error) {
+    showStatus(`Could not change the conversion style: ${error.message}`);
+    log.warn('conversion style change failed', error);
+  }
+});
+
 // README: sorting reorders the palette display only; a selected color stays
 // selected, and the pattern image is unchanged.
 el('sort-method').addEventListener('change', () => {

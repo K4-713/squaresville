@@ -6,6 +6,7 @@
 
 import { generatePattern, nearestNeighbors } from './pattern.js';
 import { rgbToHex, hexToRgb, rgbToHsl } from './color.js';
+import { CONVERSION_STYLES } from './quantize.js';
 
 /** Merge styles for mergeColors (README.md "Merging Colors"). */
 export const MERGE_STYLES = {
@@ -220,6 +221,19 @@ export function createSession() {
         throw new RangeError(`target number of colors must be a positive integer, got ${maxColors}`);
       }
       params = { ...params, maxColors };
+      return regenerate();
+    },
+
+    /**
+     * Switch the image conversion style (README.md fine-tuning; algorithms per
+     * ED-8) and regenerate automatically from the source (ED-6).
+     */
+    setConversionStyle(style) {
+      if (!pattern) throw new Error('generate a pattern before changing the conversion style');
+      if (!Object.values(CONVERSION_STYLES).includes(style)) {
+        throw new RangeError(`unknown conversion style: ${style}`);
+      }
+      params = { ...params, conversionStyle: style };
       return regenerate();
     },
   };

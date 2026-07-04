@@ -68,6 +68,14 @@
         <label for="zoom-factor">Zoom</label>
         <input type="number" id="zoom-factor" value="8" min="1" max="64" step="1">
       </div>
+      <div class="field">
+        <label for="conversion-style">Image conversion style</label>
+        <select id="conversion-style">
+          <option value="nearest" selected>Nearest color</option>
+          <option value="dithering">Dithering</option>
+          <option value="diffusion">Diffusion</option>
+        </select>
+      </div>
       <div class="side-by-side">
         <figure>
           <figcaption>Original image</figcaption>

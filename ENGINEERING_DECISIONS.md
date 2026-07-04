@@ -67,3 +67,19 @@ would give two palette entries the same color, the entries are merged into one
 
 Rationale: a palette with two identical colors is meaningless in a physical
 pattern (same fabric/thread/tile) and would break symbol assignment at export.
+
+## ED-8: Conversion style algorithms and default
+The README's three image conversion styles are implemented as, and remain:
+- **nearest color** — each square maps to the palette color with the smallest
+  Euclidean RGB distance. This is the default style.
+- **dithering** — ordered dithering with the standard 4×4 Bayer threshold matrix
+  applied per channel before the nearest-color lookup.
+- **diffusion** — Floyd–Steinberg error diffusion in left-to-right, top-to-bottom
+  scan order with the standard 7/16, 3/16, 5/16, 1/16 weights.
+
+The conversion style is a generation parameter: changing it regenerates from the
+original source pixels (ED-6), and all three styles are deterministic — the same
+inputs always produce the same pattern.
+
+Rationale: these are the canonical, well-understood algorithms for each style;
+determinism keeps patterns reproducible and the round-trip promise intact.

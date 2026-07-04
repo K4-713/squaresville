@@ -8,8 +8,8 @@ The MVP is being built in slices. Current slice in **bold**.
 3. ~~Fine-tuning: color detail pane (swatch, hex, counts, nearest neighbors, color adjuster)~~ ✅ done (includes the pulse-highlight on selection from README; ED-7; browser-verified)
 4. ~~Fine-tuning: delete a color; merge colors (A->B, A<-B, Average)~~ ✅ done (all reduce to the ED-7 changeColor machinery; browser-verified)
 5. ~~Fine-tuning: palette sorting (standard color sorts + by frequency), selection survives sort~~ ✅ done (hue / lightness / saturation / frequency; image proven unchanged; browser-verified)
-6. **Fine-tuning: conversion styles (dithering, diffusion, nearest color)**
-7. Fine-tuning: undo (10 recent actions against palette, dimensions, conversion style)
+6. ~~Fine-tuning: conversion styles (dithering, diffusion, nearest color)~~ ✅ done (ED-8: Bayer ordered dithering, Floyd–Steinberg diffusion, nearest default; browser-verified on a gradient)
+7. **Fine-tuning: undo (10 recent actions against palette, dimensions, conversion style)**
 8. Saving: right-click-saveable pattern image that survives re-upload round-trip
 9. Final export: "Generate Pattern" → tabbed .xlsx spreadsheet (pattern grid + color
    legend, symbols, row/column groups). **Decided 2026-07-03:** use `write-excel-file`
