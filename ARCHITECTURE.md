@@ -28,7 +28,10 @@ src/
                     delete = change to nearest remaining; A->B = change A to B's
                     color; Average = change both to the averaged color. Sorting
                     reorders palette + counts and remaps indices, leaving the
-                    rendered image untouched
+                    rendered image untouched. Undo keeps up to 10 snapshots of
+                    { pattern, params }; every public mutator is wrapped so one
+                    user action = one history entry (nested internal edits and
+                    no-ops/failures add nothing)
   ui/
     main.js         DOM wiring: file upload, form, preview rendering, palette list
     log.js          Leveled logger; level is a localStorage setting, not code

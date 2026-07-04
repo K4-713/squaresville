@@ -289,7 +289,28 @@ function renderResults(pattern) {
   renderStats(pattern);
   renderPalette(pattern);
   renderPatternPreview(pattern);
+  el('undo-action').disabled = session.undoCount === 0;
   el('results-section').hidden = false;
+}
+
+// README: undo up to 10 recent actions against the palette, dimensions, and
+// conversion style. Restores the previous pattern and re-syncs the fine-tuning
+// controls to the restored parameters.
+function handleUndo() {
+  if (session.undoCount === 0) return;
+  try {
+    const pattern = session.undo();
+    selectedColorIndex = null;
+    cancelPendingMerge();
+    el('target-colors').value = session.params.maxColors;
+    el('conversion-style').value = session.params.conversionStyle ?? 'nearest';
+    renderResults(pattern);
+    showStatus('Undid the last action.');
+    log.info('action undone', { remaining: session.undoCount });
+  } catch (error) {
+    showStatus(`Could not undo: ${error.message}`);
+    log.warn('undo failed', error);
+  }
 }
 
 function handleGenerate(event) {
@@ -411,6 +432,17 @@ el('adjust-picker').addEventListener('change', () => applyColorChange(el('adjust
 el('adjust-hex').addEventListener('change', () => {
   const entered = el('adjust-hex').value.trim();
   applyColorChange(entered.startsWith('#') ? entered : `#${entered}`);
+});
+
+el('undo-action').addEventListener('click', handleUndo);
+document.addEventListener('keydown', (e) => {
+  // Ctrl/Cmd+Z undoes a pattern action — but never while typing in a control,
+  // where the browser's own text undo must keep working.
+  const typing = ['INPUT', 'SELECT', 'TEXTAREA'].includes(e.target.tagName);
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z' && !typing && session.pattern) {
+    e.preventDefault();
+    handleUndo();
+  }
 });
 
 el('image-upload').addEventListener('change', (e) => handleUpload(e.target.files[0]));

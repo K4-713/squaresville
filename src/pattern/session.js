@@ -31,10 +31,38 @@ const SORT_KEYS = {
   [SORT_METHODS.FREQUENCY]: ({ count }) => [-count],
 };
 
+// README.md: the user can undo up to this many recent actions.
+const UNDO_DEPTH = 10;
+
 export function createSession() {
   let source = null;   // { rgba, width, height }
   let params = null;   // last generation parameters with rows/cols resolved
   let pattern = null;  // current indexed pattern model (ED-3)
+  let history = [];    // undo snapshots of { pattern, params }, oldest first
+  let actionInProgress = false;
+
+  // Every public mutating method is wrapped as one undoable *user action*: a
+  // snapshot is taken at entry and committed to history only if the action
+  // actually changed the pattern. Nested internal calls (e.g. mergeColors
+  // delegating to changeColor) fall inside the outer action and never create
+  // extra history entries, so one action always equals one undo step (README).
+  function undoable(method) {
+    return function (...args) {
+      const snapshot = actionInProgress ? null : { pattern, params };
+      actionInProgress = actionInProgress || snapshot !== null;
+      try {
+        return method.apply(this, args);
+      } finally {
+        if (snapshot !== null) {
+          actionInProgress = false;
+          if (snapshot.pattern !== null && pattern !== snapshot.pattern) {
+            history.push(snapshot);
+            if (history.length > UNDO_DEPTH) history.shift();
+          }
+        }
+      }
+    };
+  }
 
   function regenerate() {
     pattern = generatePattern({
@@ -52,8 +80,9 @@ export function createSession() {
     get source() { return source; },
     get params() { return params; },
     get pattern() { return pattern; },
+    get undoCount() { return history.length; },
 
-    /** Start a session from decoded upload pixels. Resets any previous pattern. */
+    /** Start a session from decoded upload pixels. Resets pattern and history. */
     loadSource({ rgba, width, height }) {
       if (!(rgba instanceof Uint8ClampedArray) || rgba.length !== width * height * 4) {
         throw new RangeError('source rgba length does not match width * height * 4');
@@ -61,14 +90,25 @@ export function createSession() {
       source = { rgba, width, height };
       params = null;
       pattern = null;
+      history = [];
+      actionInProgress = false;
+    },
+
+    /** Undo the most recent action (README.md: up to 10 recent actions). */
+    undo() {
+      if (history.length === 0) throw new Error('nothing to undo');
+      const snapshot = history.pop();
+      pattern = snapshot.pattern;
+      params = snapshot.params;
+      return pattern;
     },
 
     /** Generate the base pattern (README.md "How to use Squaresville"). */
-    generate(generationParams) {
+    generate: undoable(function (generationParams) {
       if (!source) throw new Error('load a source image before generating');
       params = { ...generationParams };
       return regenerate();
-    },
+    }),
 
     /**
      * Change one palette color to a new value (README.md "Adjust Individual
@@ -78,7 +118,7 @@ export function createSession() {
      * invariant holds. Returns { pattern, colorIndex } where colorIndex is the
      * edited color's position in the resulting palette.
      */
-    changeColor(paletteIndex, newHex) {
+    changeColor: undoable(function (paletteIndex, newHex) {
       if (!pattern) throw new Error('generate a pattern before editing colors');
       if (!Number.isInteger(paletteIndex) || paletteIndex < 0 || paletteIndex >= pattern.palette.length) {
         throw new RangeError(`paletteIndex must be a valid palette index, got ${paletteIndex}`);
@@ -114,28 +154,28 @@ export function createSession() {
       );
       pattern = { ...pattern, palette, counts, indices };
       return { pattern, colorIndex: mergedIndex };
-    },
+    }),
 
     /**
      * Delete a palette color (README.md "Deleting a Color"): its squares are
      * reassigned to the nearest remaining color. Reduces to a changeColor merge
      * into that nearest color (ED-7).
      */
-    deleteColor(paletteIndex) {
+    deleteColor: undoable(function (paletteIndex) {
       if (!pattern) throw new Error('generate a pattern before editing colors');
       if (pattern.palette.length < 2) {
         throw new Error('cannot delete the only color in the palette');
       }
       const nearest = nearestNeighbors(pattern, paletteIndex, 1)[0]; // validates index
       return this.changeColor(paletteIndex, nearest.hex);
-    },
+    }),
 
     /**
      * Merge two palette colors (README.md "Merging Colors") in one of the
      * MERGE_STYLES. Every style reduces to changeColor merges (ED-7). Returns
      * { pattern, colorIndex } with colorIndex at the surviving color.
      */
-    mergeColors(firstIndex, secondIndex, style) {
+    mergeColors: undoable(function (firstIndex, secondIndex, style) {
       if (!pattern) throw new Error('generate a pattern before merging colors');
       for (const index of [firstIndex, secondIndex]) {
         if (!Number.isInteger(index) || index < 0 || index >= pattern.palette.length) {
@@ -172,7 +212,7 @@ export function createSession() {
         default:
           throw new RangeError(`unknown merge style: ${style}`);
       }
-    },
+    }),
 
     /**
      * Reorder the palette by a SORT_METHODS entry (README.md: standard color
@@ -181,7 +221,7 @@ export function createSession() {
      * the sort (README: a selected color remains selected); returns
      * { pattern, colorIndex } with its new position (null if not tracking).
      */
-    sortPalette(method, trackIndex = null) {
+    sortPalette: undoable(function (method, trackIndex = null) {
       if (!pattern) throw new Error('generate a pattern before sorting the palette');
       const sortKey = SORT_KEYS[method];
       if (!sortKey) throw new RangeError(`unknown sort method: ${method}`);
@@ -209,32 +249,32 @@ export function createSession() {
         indices: pattern.indices.map((i) => oldToNew.get(i)),
       };
       return { pattern, colorIndex: trackIndex === null ? null : oldToNew.get(trackIndex) };
-    },
+    }),
 
     /**
      * Fine-tune the target number of colors; regenerates automatically from the
      * source (README.md "Adjust Number of Colors", ED-6).
      */
-    setTargetColors(maxColors) {
+    setTargetColors: undoable(function (maxColors) {
       if (!pattern) throw new Error('generate a pattern before adjusting colors');
       if (!Number.isInteger(maxColors) || maxColors <= 0) {
         throw new RangeError(`target number of colors must be a positive integer, got ${maxColors}`);
       }
       params = { ...params, maxColors };
       return regenerate();
-    },
+    }),
 
     /**
      * Switch the image conversion style (README.md fine-tuning; algorithms per
      * ED-8) and regenerate automatically from the source (ED-6).
      */
-    setConversionStyle(style) {
+    setConversionStyle: undoable(function (style) {
       if (!pattern) throw new Error('generate a pattern before changing the conversion style');
       if (!Object.values(CONVERSION_STYLES).includes(style)) {
         throw new RangeError(`unknown conversion style: ${style}`);
       }
       params = { ...params, conversionStyle: style };
       return regenerate();
-    },
+    }),
   };
 }
