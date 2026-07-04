@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "description": "Create patterns for quilting, cross-stitch, mosaics, or other physical objects from a digital image",
   "private": true,
+  "license": "CC0-1.0",
   "type": "module",
   "scripts": {
     "test": "node --test 'test/**/TDD_*.test.js'"
