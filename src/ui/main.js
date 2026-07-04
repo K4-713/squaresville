@@ -359,6 +359,23 @@ for (const channel of ['r', 'g', 'b', 'c', 'm', 'y', 'k']) {
     applyColorChange('rgb'.includes(channel) ? rgbSliderValues() : cmykSliderValues()));
 }
 
+// README: sorting reorders the palette display only; a selected color stays
+// selected, and the pattern image is unchanged.
+el('sort-method').addEventListener('change', () => {
+  const method = el('sort-method').value;
+  if (!method || !session.pattern) return;
+  try {
+    const { pattern, colorIndex } = session.sortPalette(method, selectedColorIndex);
+    selectedColorIndex = colorIndex;
+    renderResults(pattern);
+    showStatus('');
+    log.info('palette sorted', { method });
+  } catch (error) {
+    showStatus(`Could not sort the palette: ${error.message}`);
+    log.warn('palette sort failed', error);
+  }
+});
+
 el('delete-color').addEventListener('click', handleDeleteColor);
 el('merge-color').addEventListener('click', () => {
   if (selectedColorIndex === null) return;

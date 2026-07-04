@@ -5,13 +5,29 @@
 // Node, and future fine-tuning features (undo, palette edits) share this seam.
 
 import { generatePattern, nearestNeighbors } from './pattern.js';
-import { rgbToHex, hexToRgb } from './color.js';
+import { rgbToHex, hexToRgb, rgbToHsl } from './color.js';
 
 /** Merge styles for mergeColors (README.md "Merging Colors"). */
 export const MERGE_STYLES = {
   A_TO_B: 'a-to-b',   // A's squares -> B's color, A removed
   B_TO_A: 'b-to-a',   // B's squares -> A's color, B removed
   AVERAGE: 'average', // both -> the average color, both originals removed
+};
+
+/** Palette sort methods (README.md: standard color sorts plus frequency). */
+export const SORT_METHODS = {
+  HUE: 'hue',               // around the color wheel; achromatics first
+  LIGHTNESS: 'lightness',   // dark to light
+  SATURATION: 'saturation', // most vivid first
+  FREQUENCY: 'frequency',   // most squares first
+};
+
+/** Sort key per method; ties always break on the hex string for determinism. */
+const SORT_KEYS = {
+  [SORT_METHODS.HUE]: ({ hsl }) => [hsl.s === 0 ? -1 : hsl.h, hsl.l],
+  [SORT_METHODS.LIGHTNESS]: ({ hsl }) => [hsl.l, hsl.h],
+  [SORT_METHODS.SATURATION]: ({ hsl }) => [-hsl.s, hsl.h],
+  [SORT_METHODS.FREQUENCY]: ({ count }) => [-count],
 };
 
 export function createSession() {
@@ -155,6 +171,43 @@ export function createSession() {
         default:
           throw new RangeError(`unknown merge style: ${style}`);
       }
+    },
+
+    /**
+     * Reorder the palette by a SORT_METHODS entry (README.md: standard color
+     * sorts plus frequency). Purely a reordering: indices are remapped so the
+     * rendered pattern is unchanged. Pass trackIndex to follow a color through
+     * the sort (README: a selected color remains selected); returns
+     * { pattern, colorIndex } with its new position (null if not tracking).
+     */
+    sortPalette(method, trackIndex = null) {
+      if (!pattern) throw new Error('generate a pattern before sorting the palette');
+      const sortKey = SORT_KEYS[method];
+      if (!sortKey) throw new RangeError(`unknown sort method: ${method}`);
+      if (trackIndex !== null
+          && (!Number.isInteger(trackIndex) || trackIndex < 0 || trackIndex >= pattern.palette.length)) {
+        throw new RangeError(`trackIndex must be a valid palette index, got ${trackIndex}`);
+      }
+
+      const keyed = pattern.palette.map((hex, index) => {
+        const { r, g, b } = hexToRgb(hex);
+        return { hex, index, key: sortKey({ hsl: rgbToHsl(r, g, b), count: pattern.counts[index] }) };
+      });
+      keyed.sort((a, b) => {
+        for (let k = 0; k < a.key.length; k++) {
+          if (a.key[k] !== b.key[k]) return a.key[k] - b.key[k];
+        }
+        return a.hex < b.hex ? -1 : 1;
+      });
+
+      const oldToNew = new Map(keyed.map(({ index }, newIndex) => [index, newIndex]));
+      pattern = {
+        ...pattern,
+        palette: keyed.map(({ hex }) => hex),
+        counts: keyed.map(({ index }) => pattern.counts[index]),
+        indices: pattern.indices.map((i) => oldToNew.get(i)),
+      };
+      return { pattern, colorIndex: trackIndex === null ? null : oldToNew.get(trackIndex) };
     },
 
     /**

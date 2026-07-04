@@ -89,6 +89,16 @@
           <label for="target-colors">Target number of colors</label>
           <input type="number" id="target-colors" min="1" step="1">
         </div>
+        <div class="field">
+          <label for="sort-method">Sort the palette</label>
+          <select id="sort-method">
+            <option value="" selected>— choose a sort —</option>
+            <option value="hue">By hue (around the color wheel)</option>
+            <option value="lightness">Dark to light</option>
+            <option value="saturation">Most vivid first</option>
+            <option value="frequency">Most used first</option>
+          </select>
+        </div>
         <ol id="palette-list" aria-label="Pattern colors — select one for details"></ol>
         <div id="color-detail" hidden>
           <p class="detail-summary">

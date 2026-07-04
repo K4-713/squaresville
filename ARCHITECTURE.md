@@ -26,7 +26,9 @@ src/
                     edits act on the indexed model and merge duplicates (ED-7).
                     Delete and all three merge styles reduce to changeColor:
                     delete = change to nearest remaining; A->B = change A to B's
-                    color; Average = change both to the averaged color
+                    color; Average = change both to the averaged color. Sorting
+                    reorders palette + counts and remaps indices, leaving the
+                    rendered image untouched
   ui/
     main.js         DOM wiring: file upload, form, preview rendering, palette list
     log.js          Leveled logger; level is a localStorage setting, not code
