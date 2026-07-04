@@ -53,5 +53,14 @@ readers or keyboard users.
 - Focus states use a solid (not dashed) high-contrast outline.
 
 ## Layout
-- Original image and pattern preview side-by-side (README requirement).
+- **Compact editing workspace (decided 2026-07-03):** the results view is optimized
+  so the palette can be manipulated while the pattern image stays in view — no
+  scrolling between them. Two-column grid: the preview pane (stats, a compact
+  zoom/style/undo toolbar, the original as a small thumbnail beside the dominant
+  pattern preview, and the export controls) on the left, all palette tools in a
+  right-hand column. The preview pane is sticky, so it stays put while a tall
+  detail pane scrolls. Below ~68rem viewport width the columns stack.
+- Original image and pattern preview remain side-by-side (README requirement);
+  the original shrinks to a thumbnail so the preview dominates.
+- Chrome stays tight everywhere: compact headings, spacing, and controls.
 - Usable on a laptop screen without horizontal scrolling.

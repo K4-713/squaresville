@@ -64,24 +64,26 @@
 
     <section id="results-section" aria-labelledby="results-heading" hidden>
       <h2 id="results-heading">3. Your pattern</h2>
-      <p id="pattern-stats"></p>
-      <div class="field">
-        <button type="button" id="undo-action" disabled>Undo last action</button>
-      </div>
-      <div class="field">
-        <label for="zoom-factor">Zoom</label>
-        <input type="number" id="zoom-factor" value="8" min="1" max="64" step="1">
-      </div>
-      <div class="field">
-        <label for="conversion-style">Image conversion style</label>
-        <select id="conversion-style">
-          <option value="nearest" selected>Nearest color</option>
-          <option value="dithering">Dithering</option>
-          <option value="diffusion">Diffusion</option>
-        </select>
-      </div>
+      <div class="workspace">
+        <div class="preview-pane">
+          <p id="pattern-stats"></p>
+          <div class="toolbar">
+            <div class="field">
+              <label for="zoom-factor">Zoom</label>
+              <input type="number" id="zoom-factor" value="8" min="1" max="64" step="1">
+            </div>
+            <div class="field">
+              <label for="conversion-style">Conversion style</label>
+              <select id="conversion-style">
+                <option value="nearest" selected>Nearest color</option>
+                <option value="dithering">Dithering</option>
+                <option value="diffusion">Diffusion</option>
+              </select>
+            </div>
+            <button type="button" id="undo-action" disabled>Undo last action</button>
+          </div>
       <div class="side-by-side">
-        <figure>
+        <figure class="original-figure">
           <figcaption>Original image</figcaption>
           <img id="original-image" alt="The image you uploaded">
         </figure>
@@ -116,7 +118,9 @@
           <button type="button" id="confirm-export">Create spreadsheet</button>
         </div>
       </section>
+        </div>
 
+        <aside class="palette-pane" aria-label="Palette tools">
       <section aria-labelledby="palette-heading">
         <h3 id="palette-heading">Color palette</h3>
         <div class="field">
@@ -213,6 +217,8 @@
           </div>
         </div>
       </section>
+        </aside>
+      </div>
     </section>
   </main>
 </body>
