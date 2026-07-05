@@ -184,3 +184,38 @@ and restores it through undo. The "Generate pattern" button always rebuilds.
 Rationale: merging and deleting are live edits that preserve the rest of the palette,
 but the count control used to regenerate from the source and discard them. Making "add
 a color" an in-place edit — the natural inverse of merge — keeps the user's curation.
+
+## ED-14: Locked palette colors are protected from removal and alteration
+A session tracks a set of **locked colors** (README.md "Locking a Color"). A locked color
+cannot be deleted, altered, or merged away. Locks are identified by the color's canonical
+hex (ED-2), not by palette position: because a locked color can never change value, a
+hex identity follows it unchanged through sorting and count edits without any remapping.
+
+Enforcement:
+- `changeColor` refuses to alter a locked color (throws before any mutation). Since
+  `deleteColor` and `mergeColors` reduce to `changeColor` (ED-7), deleting a locked color
+  and merging a locked color *away* are refused too. `mergeColors` additionally checks up
+  front, before any step runs, that no color the chosen style would remove or alter is
+  locked — so a multi-step **average** merge can never leave a half-applied result.
+  Merging another color *into* a locked color is allowed: the locked color keeps its value
+  and gains the other's squares (A→B / A←B where the locked color survives), which alters
+  nothing about it.
+- Lowering the palette color count (`setPaletteColorCount`) merges away only *unlocked*
+  colors: the removed color of each merge step is always unlocked, so the count cannot drop
+  below the number of locked colors (bounded also by ED-10's at-least-one-color floor).
+  Raising the count never splits a locked color, so a locked color never has squares carved
+  off it.
+- Locking a color marks the palette **edited** (ED-13), because honoring a lock through a
+  count change requires the in-place edit path — a rebuild from source (ED-6) selects a
+  fresh palette and cannot guarantee a specific color survives.
+
+Lifecycle: locks are cleared whenever the palette is rebuilt from the source (Generate,
+changing the target color count on an un-edited palette, or changing the conversion style)
+and on a new upload, since those produce a brand-new palette. The lock set travels with the
+undo timeline (it is part of each undo snapshot and restored on undo); locking and unlocking
+are not themselves undoable actions.
+
+Rationale: users curating a palette for a physical piece need to pin colors they have chosen
+(a specific thread or tile) so that reducing the palette or auto-editing never quietly drops
+or shifts them. Anchoring locks to hex identity keeps them attached to the *color* the user
+picked rather than a fragile index.

@@ -6,7 +6,10 @@ built, TDD_-tested, and browser-verified — see the git history for each slice.
 Layout/design tweaks so far: compact two-column editing workspace, proportional
 rows/columns linking, packed swatch palette; (2026-07-04) HSB sliders, gradient
 scales on all adjuster slider tracks with live mid-drag repaint, and side-by-side
-nearest-neighbor comparison chips.
+nearest-neighbor comparison chips. (2026-07-05) default maximum colors raised to 64
+(auto-capped to the image's own colors), and palette color locking (ED-14): a locked
+color can't be deleted, altered, or merged, survives a count decrease, and shows a
+lock icon on its swatches and neighbor comparisons.
 
 Remaining:
 

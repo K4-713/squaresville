@@ -287,6 +287,22 @@ figcaption {
   border: 1px solid var(--hairline);
   border-radius: 0.15rem;
   cursor: pointer;
+  position: relative; /* anchor the lock badge (README "Locking a Color") */
+}
+
+/* README "Locking a Color": a lock icon marks a locked color on its palette
+   swatches and in neighbor comparisons. The badge is decorative (aria-hidden);
+   the locked state is also spoken via each swatch's accessible name. */
+.lock-badge {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+  line-height: 1;
+  pointer-events: none;
+  text-shadow: 0 0 2px rgba(255, 255, 255, 0.9), 0 0 3px rgba(0, 0, 0, 0.7);
 }
 
 .palette-swatch[aria-pressed="true"] {
@@ -359,6 +375,13 @@ figcaption {
 
 .compare-half {
   flex: 1 1 50%;
+  position: relative; /* anchor a lock badge over this half when its color is locked */
+}
+
+/* A locked color cannot be altered, so its in-pane color picker is inert. */
+.color-wheel.locked {
+  opacity: 0.45;
+  pointer-events: none;
 }
 
 .merge-group {

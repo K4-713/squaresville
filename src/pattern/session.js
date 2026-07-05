@@ -41,7 +41,8 @@ export function createSession() {
   let pattern = null;  // current indexed pattern model (ED-3)
   let sortMethod = null; // the sort the palette is currently in, or null if none
   let edited = false;  // has the palette been manually edited since the last generation? (ED-13)
-  let history = [];    // undo snapshots of { pattern, params, sortMethod, edited }, oldest first
+  let locked = new Set(); // canonical hexes the user has locked against removal/alteration (ED-14)
+  let history = [];    // undo snapshots of { pattern, params, sortMethod, edited, locked }, oldest first
   let actionInProgress = false;
 
   // Every public mutating method is wrapped as one undoable *user action*: a
@@ -57,7 +58,9 @@ export function createSession() {
   function undoable(method, { reapplySort = false } = {}) {
     return function (...args) {
       const outermost = !actionInProgress;
-      const snapshot = outermost ? { pattern, params, sortMethod, edited } : null;
+      // locked is snapshot by reference; lock/unlock replace the Set rather than
+      // mutating it, so an old snapshot's Set never changes underneath it (ED-14).
+      const snapshot = outermost ? { pattern, params, sortMethod, edited, locked } : null;
       if (outermost) actionInProgress = true;
       try {
         let result = method.apply(this, args);
@@ -92,6 +95,7 @@ export function createSession() {
     params = { ...params, rows: pattern.rows, cols: pattern.cols };
     sortMethod = null; // a freshly generated palette is no longer in a user sort
     edited = false;    // a fresh generation is the un-edited baseline (ED-13)
+    locked = new Set(); // a rebuilt palette is brand-new, so it carries no locks (ED-14)
     return pattern;
   }
 
@@ -117,24 +121,40 @@ export function createSession() {
     let best = -1;
     let bestSpread = 0;
     for (let c = 0; c < n; c++) {
+      // ED-14: never split a locked color, so no squares are ever carved off it.
+      if (locked.has(pattern.palette[c])) continue;
       const spread = Math.max(max[c][0] - min[c][0], max[c][1] - min[c][1], max[c][2] - min[c][2]);
       if (spread > bestSpread) { bestSpread = spread; best = c; }
     }
     return best;
   }
 
-  /** The two closest palette colors (indices), for merging when removing a color (ED-13). */
-  function nearestColorPair() {
+  /**
+   * The closest palette pair to collapse when shrinking the count (ED-13), as
+   * [removeIndex, keepIndex]: the removed color is always unlocked (ED-14) — the
+   * unlocked member of the pair, or the smaller-count one when both are unlocked. Pairs
+   * whose colors are both locked are skipped; returns null when none can be collapsed.
+   */
+  function nearestRemovablePair() {
     const rgb = pattern.palette.map((hex) => { const { r, g, b } = hexToRgb(hex); return [r, g, b]; });
-    let pair = [0, 1];
+    const isLockedIndex = (i) => locked.has(pattern.palette[i]);
+    let result = null;
     let best = Infinity;
     for (let i = 0; i < rgb.length; i++) {
       for (let j = i + 1; j < rgb.length; j++) {
+        if (isLockedIndex(i) && isLockedIndex(j)) continue; // neither can be removed
         const d = colorDistanceSquared(rgb[i], rgb[j]);
-        if (d < best) { best = d; pair = [i, j]; }
+        if (d >= best) continue;
+        let remove;
+        let keep;
+        if (isLockedIndex(i)) { remove = j; keep = i; }
+        else if (isLockedIndex(j)) { remove = i; keep = j; }
+        else { [remove, keep] = pattern.counts[i] <= pattern.counts[j] ? [i, j] : [j, i]; }
+        best = d;
+        result = [remove, keep];
       }
     }
-    return pair;
+    return result;
   }
 
   return {
@@ -144,6 +164,15 @@ export function createSession() {
     get sortMethod() { return sortMethod; },
     get edited() { return edited; }, // has the palette been hand-edited since generation? (ED-13)
     get undoCount() { return history.length; },
+    /** A read-only copy of the locked colors, by canonical hex (README, ED-14). */
+    get lockedColors() { return new Set(locked); },
+
+    /** Whether the palette color at paletteIndex is locked (README, ED-14). */
+    isLocked(paletteIndex) {
+      return pattern != null
+        && paletteIndex >= 0 && paletteIndex < pattern.palette.length
+        && locked.has(pattern.palette[paletteIndex]);
+    },
 
     /** Start a session from decoded upload pixels. Resets pattern and history. */
     loadSource({ rgba, width, height }) {
@@ -155,6 +184,7 @@ export function createSession() {
       pattern = null;
       sortMethod = null;
       edited = false;
+      locked = new Set();
       history = [];
       actionInProgress = false;
     },
@@ -167,7 +197,36 @@ export function createSession() {
       params = snapshot.params;
       sortMethod = snapshot.sortMethod;
       edited = snapshot.edited;
+      locked = snapshot.locked; // restore the lock set that went with this pattern (ED-14)
       return pattern;
+    },
+
+    /**
+     * Lock a palette color so it cannot be deleted, altered, or merged away
+     * (README.md "Locking a Color", ED-14). Identified by canonical hex, so the lock
+     * follows the color through sorts and count edits. Locking marks the palette edited
+     * (ED-13) so count changes edit in place and can honor the lock. Not itself undoable.
+     */
+    lockColor(paletteIndex) {
+      if (!pattern) throw new Error('generate a pattern before locking colors');
+      if (!Number.isInteger(paletteIndex) || paletteIndex < 0 || paletteIndex >= pattern.palette.length) {
+        throw new RangeError(`paletteIndex must be a valid palette index, got ${paletteIndex}`);
+      }
+      locked = new Set(locked).add(pattern.palette[paletteIndex]);
+      edited = true; // a rebuild from source can't preserve a specific color (ED-14, ED-13)
+      return { pattern, colorIndex: paletteIndex };
+    },
+
+    /** Unlock a previously locked palette color (README.md "Locking a Color", ED-14). */
+    unlockColor(paletteIndex) {
+      if (!pattern) throw new Error('generate a pattern before unlocking colors');
+      if (!Number.isInteger(paletteIndex) || paletteIndex < 0 || paletteIndex >= pattern.palette.length) {
+        throw new RangeError(`paletteIndex must be a valid palette index, got ${paletteIndex}`);
+      }
+      const next = new Set(locked);
+      next.delete(pattern.palette[paletteIndex]);
+      locked = next;
+      return { pattern, colorIndex: paletteIndex };
     },
 
     /** Generate the base pattern (README.md "How to use Squaresville"). */
@@ -189,6 +248,11 @@ export function createSession() {
       if (!pattern) throw new Error('generate a pattern before editing colors');
       if (!Number.isInteger(paletteIndex) || paletteIndex < 0 || paletteIndex >= pattern.palette.length) {
         throw new RangeError(`paletteIndex must be a valid palette index, got ${paletteIndex}`);
+      }
+      // ED-14: a locked color is never altered. deleteColor and mergeColors reduce to
+      // changeColor (ED-7), so this single guard also blocks deleting or merging it away.
+      if (locked.has(pattern.palette[paletteIndex])) {
+        throw new Error(`cannot alter a locked color: ${pattern.palette[paletteIndex]}`);
       }
       const { r, g, b } = hexToRgb(newHex); // throws RangeError on garbage
       const canonical = rgbToHex(r, g, b);  // canonical uppercase form (ED-2)
@@ -251,6 +315,18 @@ export function createSession() {
       }
       if (firstIndex === secondIndex) {
         throw new RangeError('choose two different colors to merge');
+      }
+      // ED-14: refuse up front, before any step runs, if the chosen style would remove or
+      // alter a locked color — so a multi-step average merge never leaves a half-applied
+      // result. A→B removes A; A←B removes B; average alters both. Merging *into* a locked
+      // color (the locked one surviving) is allowed and unaffected.
+      const removesLocked =
+        (style === MERGE_STYLES.A_TO_B && locked.has(pattern.palette[firstIndex]))
+        || (style === MERGE_STYLES.B_TO_A && locked.has(pattern.palette[secondIndex]))
+        || (style === MERGE_STYLES.AVERAGE
+            && (locked.has(pattern.palette[firstIndex]) || locked.has(pattern.palette[secondIndex])));
+      if (removesLocked) {
+        throw new Error('cannot merge a locked color away — unlock it first');
       }
 
       const hexA = pattern.palette[firstIndex];
@@ -356,9 +432,9 @@ export function createSession() {
         if (pattern.palette.length === before) break; // safety: no forward progress
       }
       while (pattern.palette.length > target && pattern.palette.length > 1) {
-        const [i, j] = nearestColorPair();
-        const [smaller, larger] = pattern.counts[i] <= pattern.counts[j] ? [i, j] : [j, i];
-        this.mergeColors(smaller, larger, MERGE_STYLES.A_TO_B);
+        const pair = nearestRemovablePair();
+        if (!pair) break; // every remaining color is locked — the count floor (ED-14)
+        this.mergeColors(pair[0], pair[1], MERGE_STYLES.A_TO_B); // pair[0] is unlocked
       }
       return { pattern, colorIndex: null };
     }, { reapplySort: true }),

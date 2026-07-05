@@ -136,6 +136,17 @@ const colorInfoText = (pattern, i) => {
   return `${pattern.palette[i]} — ${count} ${count === 1 ? 'square' : 'squares'}`;
 };
 
+// README "Locking a Color": a small lock icon marks a locked color's swatches in the
+// palette and in neighbor comparisons. Decorative only (aria-hidden) — the locked state
+// is also carried in each swatch's accessible name.
+function lockBadge() {
+  const badge = document.createElement('span');
+  badge.className = 'lock-badge';
+  badge.setAttribute('aria-hidden', 'true');
+  badge.textContent = '🔒';
+  return badge;
+}
+
 function selectColor(pattern, index) {
   selectedColorIndex = index;
   renderPalette(pattern);
@@ -197,6 +208,7 @@ function renderNeighbors(pattern) {
   const list = el('neighbor-list');
   list.replaceChildren();
   const selectedHex = pattern.palette[selectedColorIndex];
+  const lockedSet = session.lockedColors; // README: mark locked colors in comparisons too
   const neighbors = nearestNeighbors(
     pattern, selectedColorIndex,
     Math.min(NEAREST_NEIGHBOR_DISPLAY_COUNT, Math.max(1, pattern.palette.length - 1)),
@@ -207,8 +219,9 @@ function renderNeighbors(pattern) {
     chip.type = 'button';
     chip.className = 'neighbor-chip';
     const squares = `${neighbor.count} ${neighbor.count === 1 ? 'square' : 'squares'}`;
+    const neighborLocked = lockedSet.has(neighbor.hex) ? ' (locked)' : '';
     chip.setAttribute('aria-label',
-      `Compare selected ${selectedHex} with ${neighbor.hex} — ${squares}`);
+      `Compare selected ${selectedHex} with ${neighbor.hex}${neighborLocked} — ${squares}`);
     const pair = document.createElement('span');
     pair.className = 'compare-pair';
     pair.setAttribute('aria-hidden', 'true');
@@ -216,6 +229,7 @@ function renderNeighbors(pattern) {
       const half = document.createElement('span');
       half.className = 'compare-half';
       half.style.background = hex;
+      if (lockedSet.has(hex)) half.append(lockBadge());
       pair.append(half);
     }
     const label = document.createElement('span');
@@ -287,20 +301,58 @@ function renderAdjuster(hex, { hold = [], fromPicker = false } = {}) {
   }
 }
 
+// README "Locking a Color": a locked color cannot be deleted or altered, so its delete
+// button and the whole adjuster (hex, sliders, and the color wheel) are disabled while it
+// is selected. Merging stays available, but only in the direction that keeps the locked
+// color: A←B lets it claim another color's squares (it survives unchanged), while A→B
+// (which would remove it) and Average (which would alter it) are disabled. The lock/unlock
+// button itself always stays enabled.
+const ADJUSTER_INPUT_IDS = [
+  'adjust-hex',
+  'adjust-r', 'adjust-g', 'adjust-b',
+  'adjust-c', 'adjust-m', 'adjust-y', 'adjust-k',
+  'adjust-h', 'adjust-s', 'adjust-v',
+];
+const mergeStyleRadio = (value) => document.querySelector(`input[name="merge-style"][value="${value}"]`);
+function setDetailEditingDisabled(locked) {
+  el('delete-color').disabled = locked;
+  for (const id of ADJUSTER_INPUT_IDS) el(id).disabled = locked;
+  el('color-wheel').classList.toggle('locked', locked);
+  // Take the wheel handles out of (or back into) the tab order to match.
+  for (const id of ['hue-handle', 'sv-handle']) el(id).setAttribute('tabindex', locked ? '-1' : '0');
+
+  // Merge stays possible; a locked color can only survive an A←B merge, so restrict the
+  // style choice to that when locked and leave the Merge button itself enabled.
+  mergeStyleRadio(MERGE_STYLES.A_TO_B).disabled = locked;
+  mergeStyleRadio(MERGE_STYLES.AVERAGE).disabled = locked;
+  mergeStyleRadio(MERGE_STYLES.B_TO_A).disabled = false;
+  if (locked) mergeStyleRadio(MERGE_STYLES.B_TO_A).checked = true;
+  el('merge-color').disabled = false;
+}
+
 /** Fill (or hide) the color detail pane for the selected swatch. */
 function renderColorDetail(pattern) {
   const detail = el('color-detail');
   if (selectedColorIndex === null || selectedColorIndex >= pattern.palette.length) {
     selectedColorIndex = null;
+    setDetailEditingDisabled(false); // don't leave controls disabled behind the hidden pane
     detail.hidden = true;
     return;
   }
   const hex = pattern.palette[selectedColorIndex];
+  const isLocked = session.isLocked(selectedColorIndex);
   el('detail-swatch').style.background = hex;
-  el('detail-text').textContent = colorInfoText(pattern, selectedColorIndex);
+  el('detail-text').textContent = isLocked
+    ? `${colorInfoText(pattern, selectedColorIndex)} (locked)`
+    : colorInfoText(pattern, selectedColorIndex);
   renderNeighbors(pattern);
   renderAdjuster(hex);
   updateMergeButton();
+  // README "Locking a Color": the button toggles label, and locked colors can't be edited.
+  const lockButton = el('lock-color');
+  lockButton.textContent = isLocked ? 'Unlock Color' : 'Lock Color';
+  lockButton.setAttribute('aria-pressed', String(isLocked));
+  setDetailEditingDisabled(isLocked);
   detail.hidden = false;
 }
 
@@ -332,8 +384,11 @@ function renderPalette(pattern) {
     swatch.type = 'button';
     swatch.className = 'palette-swatch';
     swatch.style.background = hex;
-    swatch.title = colorInfoText(pattern, i);
-    swatch.setAttribute('aria-label', colorInfoText(pattern, i));
+    // README "Locking a Color": a lock icon marks a locked swatch; its accessible name says so.
+    const isLocked = session.isLocked(i);
+    const label = isLocked ? `${colorInfoText(pattern, i)} (locked)` : colorInfoText(pattern, i);
+    swatch.title = label;
+    swatch.setAttribute('aria-label', label);
     swatch.setAttribute('aria-pressed', String(i === selectedColorIndex));
     swatch.addEventListener('click', () => {
       if (pendingMergeStyle !== null) {
@@ -346,6 +401,7 @@ function renderPalette(pattern) {
         selectColor(pattern, i);
       }
     });
+    if (isLocked) { swatch.classList.add('locked'); swatch.append(lockBadge()); }
     item.append(swatch);
     list.append(item);
   });
@@ -598,6 +654,29 @@ el('sort-method').addEventListener('change', () => {
   } catch (error) {
     showStatus(`Could not sort the palette: ${error.message}`);
     log.warn('palette sort failed', error);
+  }
+});
+
+// README "Locking a Color": lock/unlock the selected color. Locking marks the palette
+// edited so the number-of-colors control edits in place and can preserve the lock (ED-14).
+el('lock-color').addEventListener('click', () => {
+  if (selectedColorIndex === null) return;
+  const hex = session.pattern.palette[selectedColorIndex];
+  const willLock = !session.isLocked(selectedColorIndex);
+  try {
+    if (willLock) session.lockColor(selectedColorIndex);
+    else session.unlockColor(selectedColorIndex);
+    cancelPendingMerge();
+    // Re-render so the palette/neighbor lock icons and the count-control state refresh;
+    // the selection is unchanged (locking never reorders the palette).
+    renderResults(session.pattern);
+    showStatus(willLock
+      ? `Locked ${hex} — it won't be deleted, changed, or merged.`
+      : `Unlocked ${hex}.`);
+    log.info(willLock ? 'color locked' : 'color unlocked', { hex, locked: session.lockedColors.size });
+  } catch (error) {
+    showStatus(`Could not change the lock: ${error.message}`);
+    log.warn('lock toggle failed', error);
   }
 });
 

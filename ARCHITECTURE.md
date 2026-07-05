@@ -34,10 +34,15 @@ src/
                     saturation, frequency). The active sort method is tracked;
                     palette manipulations (change/delete/merge) re-apply it once
                     at the outermost action so the palette stays ordered (README),
-                    and regeneration clears it. Undo keeps up to 10 snapshots of
-                    { pattern, params, sortMethod }; every public mutator is
-                    wrapped so one user action = one history entry (nested
-                    internal edits and no-ops/failures add nothing)
+                    and regeneration clears it. Locked colors (ED-14) are held as a
+                    set of canonical hexes: changeColor refuses to alter one (so
+                    delete/merge-away are refused too), lowering the count merges only
+                    unlocked colors and raising it never splits a locked one; locks
+                    clear on regeneration. Undo keeps up to 10 snapshots of
+                    { pattern, params, sortMethod, edited, locked }; every public
+                    mutator is wrapped so one user action = one history entry (nested
+                    internal edits and no-ops/failures add nothing; lock/unlock are
+                    not themselves undoable)
   ui/
     main.js         DOM wiring: file upload, form, preview rendering, palette list
     adjusterGradients.js  Pure gradient-scale stops/CSS for the adjuster slider
