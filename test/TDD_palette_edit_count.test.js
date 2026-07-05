@@ -59,6 +59,15 @@ test('TDD_splitColor adds exactly one color and leaves the others untouched (ED-
   assert.equal(session.edited, true);
 });
 
+test('TDD_splitting a color keeps its exact value, so recolors stick (ED-13)', () => {
+  const session = scene(2); // color 0 is a varied green+red group
+  session.changeColor(0, '#FF00FF'); // recolor it to a value unrelated to its grid colors
+  const magenta = session.pattern.palette.indexOf('#FF00FF');
+  const { pattern } = session.splitColor(magenta);
+  assert.equal(pattern.palette.length, 3, 'a color was added');
+  assert.ok(pattern.palette.includes('#FF00FF'), 'the recolored value survives the split');
+});
+
 test('TDD_a single-grid-color palette entry cannot be split (ED-13)', () => {
   const session = scene(3); // greens, reds, and solid white
   const white = session.pattern.palette.indexOf('#FFFFFF');

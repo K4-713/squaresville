@@ -101,13 +101,20 @@ export function splitPaletteColor(pattern, grid, colorIndex, style) {
   const two = buildPalette(Uint8ClampedArray.from(sub), 2, style);
   if (two.length < 2) return pattern; // all one grid color — nothing to split
 
-  const paletteHex = [...palette];
-  paletteHex[colorIndex] = rgbToHex(...two[0]);
-  const newIndex = paletteHex.push(rgbToHex(...two[1])) - 1;
+  // Keep the original color's value untouched (so manual recolors/merges stick, ED-13):
+  // carve off only a *new* color for the sub-cluster of grid colors farther from it.
+  const { r, g, b } = hexToRgb(palette[colorIndex]);
+  const original = [r, g, b];
+  const keepFirst = colorDistanceSquared(two[0], original) <= colorDistanceSquared(two[1], original);
+  const keptRep = keepFirst ? two[0] : two[1];
+  const newRep = keepFirst ? two[1] : two[0];
+
+  const paletteHex = [...palette]; // the split color keeps its exact value
+  const newIndex = paletteHex.push(rgbToHex(...newRep)) - 1;
   const reassigned = indices.map((idx, i) => {
     if (idx !== colorIndex) return idx;
-    const g = [grid[i * 4], grid[i * 4 + 1], grid[i * 4 + 2]];
-    return colorDistanceSquared(g, two[0]) <= colorDistanceSquared(g, two[1]) ? colorIndex : newIndex;
+    const gc = [grid[i * 4], grid[i * 4 + 1], grid[i * 4 + 2]];
+    return colorDistanceSquared(gc, newRep) < colorDistanceSquared(gc, keptRep) ? newIndex : colorIndex;
   });
   return finalizeIndexed(paletteHex, reassigned, {
     cols: pattern.cols, rows: pattern.rows, dimensions: pattern.dimensions,

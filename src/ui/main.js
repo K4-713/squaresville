@@ -13,6 +13,7 @@ import {
 import { sliderGradientCss } from './adjusterGradients.js';
 import { hueForVector, vectorForHue, svForPoint, pointForSv } from './colorPicker.js';
 import { createSession, MERGE_STYLES } from '../pattern/session.js';
+import { distinctColorCount } from '../pattern/quantize.js';
 import { buildWorkbook } from '../pattern/export.js';
 import { log } from './log.js';
 
@@ -61,11 +62,17 @@ async function handleUpload(file) {
     // README: rows/columns default to the image's original dimensions in pixels.
     el('pattern-cols').value = decoded.width;
     el('pattern-rows').value = decoded.height;
+    // ED-12: the image's own distinct colors cap how many the palette can request.
+    const imageColors = distinctColorCount(decoded.rgba);
+    el('max-colors').max = imageColors;
+    if (parseInt(el('max-colors').value, 10) > imageColors) el('max-colors').value = imageColors;
     el('original-image').src = originalImageUrl;
     el('parameters-section').hidden = false;
     el('results-section').hidden = true; // a new upload starts a fresh session
-    showStatus(`Image loaded (${decoded.width} × ${decoded.height} pixels). Choose your pattern settings.`);
-    log.info('image uploaded', { width: decoded.width, height: decoded.height, type: file.type });
+    showStatus(`Image loaded (${decoded.width} × ${decoded.height} pixels, ${imageColors} colors). Choose your pattern settings.`);
+    log.info('image uploaded', {
+      width: decoded.width, height: decoded.height, colors: imageColors, type: file.type,
+    });
   } catch (error) {
     showStatus('That file could not be read as an image. Please try a different file.');
     log.warn('image decode failed', error);
@@ -347,9 +354,12 @@ function renderPalette(pattern) {
 
 function renderStats(pattern) {
   const { width, height, units, totalSquares } = pattern.dimensions;
+  // ED-12: show the palette size and, when fewer than exist, how many are available.
+  const colors = pattern.availableColors > pattern.palette.length
+    ? `${pattern.palette.length} of ${pattern.availableColors} colors`
+    : `${pattern.palette.length} colors`;
   el('pattern-stats').textContent =
-    `Finished size: ${width} × ${height} ${units} • ${totalSquares} total squares • ` +
-    `${pattern.palette.length} colors`;
+    `Finished size: ${width} × ${height} ${units} • ${totalSquares} total squares • ${colors}`;
 }
 
 function renderResults(pattern) {
@@ -360,6 +370,7 @@ function renderResults(pattern) {
   // Number of Colors"). Merges/deletes shrink the palette, so this must re-sync
   // on every render, not only on regeneration.
   el('target-colors').value = pattern.palette.length;
+  el('target-colors').max = pattern.availableColors; // ED-12: can't request more than exist
   renderPalette(pattern);
   renderPatternPreview(pattern);
   // Keep the sort dropdown honest: it reflects the palette's active sort, which
@@ -416,17 +427,22 @@ function handleGenerate(event) {
   }
 }
 
-// README "Adjust Number of Colors": changing the target regenerates automatically.
+// README "Adjust Number of Colors": changing the count. On a pristine palette this
+// rebuilds from the source (ED-6); once the palette has been hand-edited it edits the
+// current palette in place so the edits are preserved (ED-13).
 function handleTargetColors() {
   if (!session.pattern) return;
   try {
-    const pattern = session.setTargetColors(parseInt(el('target-colors').value, 10));
-    selectedColorIndex = null; // regeneration builds a new palette
+    const n = parseInt(el('target-colors').value, 10);
+    const editing = session.edited;
+    const result = editing ? session.setPaletteColorCount(n) : session.setTargetColors(n);
+    const pattern = result.pattern ?? result; // setPaletteColorCount wraps; setTargetColors doesn't
+    selectedColorIndex = null; // the palette was rebuilt or reshaped
     cancelPendingMerge();
     renderResults(pattern);
     showStatus('');
-    log.info('target colors adjusted', {
-      target: el('target-colors').value, colors: pattern.palette.length,
+    log.info('color count adjusted', {
+      requested: n, colors: pattern.palette.length, mode: editing ? 'edit' : 'rebuild',
     });
   } catch (error) {
     showStatus(`Could not adjust the colors: ${error.message}`);
