@@ -5,7 +5,9 @@
 import { rgbToHex, hexToRgb, colorDistanceSquared } from './color.js';
 import { computeDimensions } from './dimensions.js';
 import { resampleToGrid } from './resample.js';
-import { buildPalette, mapWithStyle, CONVERSION_STYLES, PALETTE_STYLES } from './quantize.js';
+import {
+  buildPalette, mapWithStyle, distinctColorCount, CONVERSION_STYLES, PALETTE_STYLES,
+} from './quantize.js';
 
 /**
  * Generate a base pattern from an uploaded image.
@@ -26,7 +28,9 @@ export function generatePattern({
 }) {
   const dimensions = computeDimensions({ rows, cols, squareSize, units });
   const grid = resampleToGrid(rgba, width, height, cols, rows);
-  const rawPalette = buildPalette(grid, maxColors, paletteStyle);
+  // ED-12: the grid's distinct colors are the ceiling; never build more than exist.
+  const availableColors = distinctColorCount(grid);
+  const rawPalette = buildPalette(grid, Math.min(maxColors, availableColors), paletteStyle);
   const rawIndices = mapWithStyle(grid, rawPalette, conversionStyle, cols, rows);
 
   // Keep only colors actually present in the pattern (README: the palette shows
@@ -45,6 +49,7 @@ export function generatePattern({
     indices: rawIndices.map((i) => oldToNew.get(i)),
     counts: usedOldIndices.map((i) => usedCounts.get(i)),
     dimensions,
+    availableColors, // ED-12: distinct colors in the grid (the palette ceiling)
     itemType,
   };
 }

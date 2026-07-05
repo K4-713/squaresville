@@ -134,3 +134,31 @@ survive drastic palette reduction rather than being muddied into duller tones.
 Rationale: a plain population median cut spends its palette on large flat regions
 and averages rare vivid accents into grey; weighting by saturation and splitting by
 color spread keeps a design's bold colors, which is what physical-craft users want.
+
+## ED-12: Color count is honest, monotonic, and capped at the available colors
+A pattern carries an **availableColors** count — the number of distinct colors in the
+resampled grid (the cols×rows squares the palette is built from). This is the hard
+ceiling for the palette: you cannot have more palette colors than the image actually
+contains at that size.
+
+`generatePattern` delivers exactly `min(requested, availableColors)` colors, and
+**no palette color is ever unused** — every returned color is the nearest color for at
+least one square. Consequently the count is honest ("ask for N, get N") and monotonic
+(raising the request never lowers the delivered count); requesting more than exist
+simply yields all available colors.
+
+Mechanism: after median-cut selection (ED-11), any palette color that is no square's
+nearest is reseeded onto the worst-represented grid color and the mapping repeated,
+until every color is used — so the count is honest without abandoning the
+vivid/balanced selection. Exactness is under nearest-color mapping (the default);
+dithered styles deliberately spread usage and may differ.
+
+The UI caps both color-count controls at what exists: the setup form's maximum at the
+uploaded image's own distinct-color count, and the palette's "number of colors" at the
+current pattern's availableColors — so the user can never request colors that don't
+exist, and the available count reflects colors actually present in the image.
+
+Rationale: the earlier median cut dropped unused palette colors after the fact, so the
+delivered count fell short of — and bounced around — the requested number as it rose,
+which is baffling when tuning a palette. Tying the control to real, used, available
+colors makes the count trustworthy.

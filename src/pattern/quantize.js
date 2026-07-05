@@ -37,6 +37,51 @@ function tallyDistinctColors(rgbaGrid) {
   }));
 }
 
+/** How many distinct colors the resampled grid holds — a pattern's ceiling (ED-12). */
+export function distinctColorCount(rgbaGrid) {
+  return tallyDistinctColors(rgbaGrid).length;
+}
+
+const colorKey = ([r, g, b]) => (r << 16) | (g << 8) | b;
+// Cap on reseed passes; each pass fills at least one empty slot, so this bounds work.
+const MAX_RESEED_PASSES = 64;
+
+/**
+ * Ensure every palette color is the nearest color for at least one grid color (ED-12):
+ * repeatedly reseed any unused palette entry onto the worst-represented grid color
+ * until none are unused. Preserves the median-cut/vivid selection for the used
+ * entries; only dead slots move. `distinct` is the weighted distinct-color list.
+ */
+function ensureAllUsed(distinct, palette) {
+  for (let pass = 0; pass < MAX_RESEED_PASSES; pass++) {
+    const used = new Array(palette.length).fill(false);
+    const assignments = distinct.map((entry) => {
+      const nearest = nearestIndex(entry.color, palette);
+      used[nearest] = true;
+      return { color: entry.color, distance: colorDistanceSquared(entry.color, palette[nearest]) };
+    });
+    const empties = [];
+    for (let j = 0; j < palette.length; j++) {
+      if (!used[j]) empties.push(j);
+    }
+    if (empties.length === 0) break;
+
+    // Worst-represented grid colors first; skip any that already sit on a palette color.
+    const claimed = new Set(palette.map(colorKey));
+    const candidates = assignments
+      .filter((a) => !claimed.has(colorKey(a.color)))
+      .sort((a, b) => b.distance - a.distance || colorKey(a.color) - colorKey(b.color));
+    let next = 0;
+    for (const slot of empties) {
+      if (next >= candidates.length) break; // no distinct colors left to seed with
+      palette[slot] = [...candidates[next].color];
+      claimed.add(colorKey(candidates[next].color));
+      next += 1;
+    }
+  }
+  return palette;
+}
+
 /** The channel a box spreads widest along, and that range. */
 function widestExtent(entries) {
   let channel = 0;
@@ -132,7 +177,9 @@ export function buildPalette(rgbaGrid, maxColors, style = PALETTE_STYLES.VIVID) 
     const [left, right] = splitBox(boxes[target]);
     boxes.splice(target, 1, left, right);
   }
-  return boxes.map(averageColor);
+  // ED-12: reseed any box color that no square is nearest to, so the palette has
+  // exactly maxColors *used* colors.
+  return ensureAllUsed(distinct, boxes.map(averageColor));
 }
 
 /** Index of the palette color nearest to one [r, g, b] value. */
