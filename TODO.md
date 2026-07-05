@@ -9,7 +9,11 @@ scales on all adjuster slider tracks with live mid-drag repaint, and side-by-sid
 nearest-neighbor comparison chips. (2026-07-05) default maximum colors raised to 64
 (auto-capped to the image's own colors), and palette color locking (ED-14): a locked
 color can't be deleted, altered, or merged, survives a count decrease, and shows a
-lock icon on its swatches and neighbor comparisons.
+lock icon on its swatches and neighbor comparisons. Export true-symbol set grown to
+64 distinctiveness-ordered monochrome glyphs, repeated in black/dark-blue/dark-red ink
+tiers (192 marks) before numeric fallback (ED-9); fixed a latent bug where the legend
+swatch's readable text color used the wrong write-excel-file property (`color` →
+`textColor`).
 
 Remaining:
 
@@ -24,6 +28,10 @@ Remaining:
   fully editable by the user. Needs its own slice after the MVP list above.
 
 ## Future ideas (explicitly not MVP)
+- **More standard symbols in the true-symbol set:** add common keyboard characters
+  (@, $, &, *, etc.) to `SYMBOL_SET` (ED-9) to lengthen the black tier before ink
+  colors kick in. Its own commit; keep the distinctiveness ordering and re-check
+  each renders monochrome in stock spreadsheet fonts.
 - **Automated browser tests:** UI-level behaviors and the DESIGN.md layout /
   accessibility commitments are verified per-change with ad-hoc headless-Chrome
   harnesses; a permanent browser test suite (e.g. Playwright) would make those

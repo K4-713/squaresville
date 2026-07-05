@@ -16,13 +16,29 @@ export const SYMBOL_TYPES = {
 /** Row/column group sizes offered at export (README: 3 or 5). */
 export const GROUP_SIZES = [3, 5];
 
-// Unicode geometric shapes that render in stock spreadsheet fonts (ED-9; no
-// symbol fonts — see the portability note in TODO slice 9). Order is the
-// assignment order.
+// Unicode geometric shapes that render as monochrome text in stock spreadsheet
+// fonts (ED-9; no symbol fonts — .xlsx cannot embed fonts). Ordered most-distinct
+// first (solid/outline of clearly different base shapes, then fills, halves,
+// hatches, and rotations of each family) so the most-used colors get the most
+// tell-apart marks. Every glyph here was checked to render mono, not tofu/emoji.
 const SYMBOL_SET = [
-  '■', '●', '▲', '◆', '★', '✚', '▼', '◐', '□', '○', '△', '◇',
-  '☆', '◑', '▣', '◈', '✦', '✖', '⬟', '⬢', '◭', '▤', '▦', '▩',
+  '■', '○', '▲', '◆', '★', '✚', '▼', '◇',
+  '□', '●', '△', '◈', '☆', '✖', '▽', '◐',
+  '⊕', '⊗', '⊙', '⊘', '◉', '◎', '⦿', '◍',
+  '⊞', '⊠', '⊟', '⊡', '▣', '▩', '▢', '◫',
+  '▤', '▥', '▦', '▧', '▨', '◧', '◨', '◩',
+  '◪', '◑', '◒', '◓', '◔', '◕', '◖', '◗',
+  '▶', '◀', '▷', '◁', '◢', '◣', '◤', '◥',
+  '✦', '✧', '✱', '✴', '❂', '❉', '⬟', '⬢',
 ];
+
+// Symbol ink colors (ED-9). "True symbols" are drawn in black first; once the
+// glyph set is exhausted it repeats in dark blue, then dark red, so a large
+// palette gets 3× the distinct marks before falling back to numerals. Ordinary
+// palettes (<= the glyph count) stay pure black, so black-and-white printing is
+// unaffected. Colors are dark enough to read on both group backgrounds.
+const SYMBOL_INK_BLACK = '#000000';
+const SYMBOL_TIER_COLORS = [SYMBOL_INK_BLACK, '#0B3D91', '#9C1B1B'];
 
 // Subtle alternating group backgrounds for the pattern sheet (README), and
 // legend header styling.
@@ -33,15 +49,25 @@ const LEGEND_COLUMN_WIDTHS = [8, 12, 10];
 const DARK_SWATCH_LIGHTNESS = 55;
 
 /**
- * Assign one symbol per palette color, in palette order (ED-9). Numeric =
- * 1-based strings; symbols = the fixed geometric set with numeric overflow.
+ * Assign one mark per palette color, in palette order (ED-9). Returns
+ * { value, color } entries — value is the glyph or numeral, color is the font ink.
+ * Numeric = 1-based strings, all black. True symbols = the fixed geometric set,
+ * repeated in successive ink colors (black, dark blue, dark red) before falling
+ * back to numerals; each (value, color) pair is unique within the export.
  */
 export function assignSymbols(pattern, symbolType) {
   if (symbolType === SYMBOL_TYPES.NUMERIC) {
-    return pattern.palette.map((_, i) => String(i + 1));
+    return pattern.palette.map((_, i) => ({ value: String(i + 1), color: SYMBOL_INK_BLACK }));
   }
   if (symbolType === SYMBOL_TYPES.SYMBOLS) {
-    return pattern.palette.map((_, i) => SYMBOL_SET[i] ?? String(i + 1));
+    return pattern.palette.map((_, i) => {
+      const tier = Math.floor(i / SYMBOL_SET.length);
+      if (tier < SYMBOL_TIER_COLORS.length) {
+        return { value: SYMBOL_SET[i % SYMBOL_SET.length], color: SYMBOL_TIER_COLORS[tier] };
+      }
+      // Past every glyph in every ink color: fall back to plain numerals.
+      return { value: String(i + 1), color: SYMBOL_INK_BLACK };
+    });
   }
   throw new RangeError(`unknown symbol type: ${symbolType}`);
 }
@@ -64,8 +90,10 @@ export function buildWorkbook(pattern, { groupSize, symbolType }) {
     const row = [];
     for (let x = 0; x < pattern.cols; x++) {
       const groupParity = (Math.floor(x / groupSize) + Math.floor(y / groupSize)) % 2;
+      const mark = symbols[pattern.indices[y * pattern.cols + x]];
       row.push({
-        value: symbols[pattern.indices[y * pattern.cols + x]],
+        value: mark.value,
+        textColor: mark.color, // symbol ink (ED-9): black, or a tier color for large palettes
         align: 'center',
         backgroundColor: GROUP_BACKGROUNDS[groupParity],
       });
@@ -84,8 +112,8 @@ export function buildWorkbook(pattern, { groupSize, symbolType }) {
     const { r, g, b } = hexToRgb(hex);
     const darkSwatch = rgbToHsl(r, g, b).l < DARK_SWATCH_LIGHTNESS;
     legendRows.push([
-      { value: symbols[i], align: 'center' },
-      { value: hex, backgroundColor: hex, color: darkSwatch ? '#FFFFFF' : '#000000' },
+      { value: symbols[i].value, textColor: symbols[i].color, align: 'center' },
+      { value: hex, backgroundColor: hex, textColor: darkSwatch ? '#FFFFFF' : '#000000' },
       { value: pattern.counts[i], type: Number },
     ]);
   });

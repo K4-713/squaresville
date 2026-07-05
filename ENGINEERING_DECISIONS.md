@@ -93,18 +93,28 @@ Rationale: these are the canonical, well-understood algorithms for each style;
 determinism keeps patterns reproducible and the round-trip promise intact.
 
 ## ED-9: Export symbol assignment
-Symbols are assigned to palette colors in palette order, deterministically.
-"Numeric" symbols are 1-based integers rendered as strings ("1", "2", …).
-"True symbols" come from a fixed, ordered set of Unicode geometric shapes chosen
-to render in stock spreadsheet fonts (no symbol fonts like Wingdings — see the
-portability decision in TODO slice 9); if the palette is larger than the symbol
-set, the overflow entries fall back to numeric symbols. Within one export every
-color's symbol is unique. Spreadsheet cells never name a custom font — .xlsx
-cannot embed fonts, so styling sticks to universally-available defaults.
+Symbols are assigned to palette colors in palette order, deterministically. Each
+assigned mark is a `{ value, color }` pair — the character plus its font ink.
+"Numeric" symbols are 1-based integers rendered as strings ("1", "2", …), all in
+black. "True symbols" come from a fixed, ordered set of **64** Unicode geometric
+shapes chosen to render as monochrome text in stock spreadsheet fonts (no symbol
+fonts like Wingdings; .xlsx cannot embed fonts). The set is ordered most-distinct
+first, so the most-used colors get the most tell-apart marks.
 
-Rationale: deterministic, collision-free symbols keep the printed pattern and
-legend trustworthy; Unicode geometric shapes survive Excel, LibreOffice, and
-Google Sheets alike.
+When a palette needs more marks than there are glyphs, the glyph set repeats in
+successive **ink colors** — black, then dark blue, then dark red — yielding
+64 × 3 = 192 distinct marks before falling back to numerals. Ink color is a
+distinguishing axis independent of the palette color a mark stands for; because
+color is only introduced *after* all 64 black glyphs are used, palettes of 64 or
+fewer colors stay pure black, so black-and-white printing is unaffected. Within one
+export every `(value, color)` pair is unique. Spreadsheet cells never name a custom
+font — styling sticks to universally-available defaults; only the font ink color is
+set.
+
+Rationale: deterministic, collision-free marks keep the printed pattern and legend
+trustworthy; Unicode geometric shapes survive Excel, LibreOffice, and Google Sheets
+alike, and layering ink color on top expands the usable set well past the 64-color
+default palette without resorting to hard-to-scan numerals.
 
 ## ED-10: A pattern always retains at least one palette color
 Operations that would leave the palette empty are refused (currently: deleting
