@@ -55,6 +55,67 @@ export function generatePattern({
 }
 
 /**
+ * Rebuild an indexed pattern from a (possibly redundant) hex palette + indices:
+ * duplicate colors collapse to their first entry, unused colors drop, counts are
+ * recomputed, and the surviving colors keep their existing order (ED-3, ED-7).
+ */
+function finalizeIndexed(paletteHex, indices, meta) {
+  const firstForHex = new Map();
+  const remap = paletteHex.map((hex, i) => {
+    if (!firstForHex.has(hex)) firstForHex.set(hex, i);
+    return firstForHex.get(hex);
+  });
+  const merged = indices.map((i) => remap[i]);
+  const usedCounts = new Map();
+  for (const i of merged) usedCounts.set(i, (usedCounts.get(i) ?? 0) + 1);
+  const usedOld = [...usedCounts.keys()].sort((a, b) => a - b);
+  const oldToNew = new Map(usedOld.map((old, next) => [old, next]));
+  return {
+    cols: meta.cols,
+    rows: meta.rows,
+    palette: usedOld.map((i) => paletteHex[i]),
+    indices: merged.map((i) => oldToNew.get(i)),
+    counts: usedOld.map((i) => usedCounts.get(i)),
+    dimensions: meta.dimensions,
+    availableColors: meta.availableColors,
+    itemType: meta.itemType,
+  };
+}
+
+/**
+ * Split one palette color into two by re-quantizing the source (grid) colors of the
+ * squares assigned to it, then reassigning those squares to the nearer of the two
+ * (ED-13). `grid` is the resampled RGBA grid (one entry per square, matching
+ * pattern.indices). Every other color is left untouched. Returns the new pattern, or
+ * the pattern unchanged if the color cannot be split (its squares are one grid color).
+ */
+export function splitPaletteColor(pattern, grid, colorIndex, style) {
+  const { palette, indices } = pattern;
+  if (!Number.isInteger(colorIndex) || colorIndex < 0 || colorIndex >= palette.length) {
+    throw new RangeError(`colorIndex must be a valid palette index, got ${colorIndex}`);
+  }
+  const sub = [];
+  for (let i = 0; i < indices.length; i++) {
+    if (indices[i] === colorIndex) sub.push(grid[i * 4], grid[i * 4 + 1], grid[i * 4 + 2], 255);
+  }
+  const two = buildPalette(Uint8ClampedArray.from(sub), 2, style);
+  if (two.length < 2) return pattern; // all one grid color — nothing to split
+
+  const paletteHex = [...palette];
+  paletteHex[colorIndex] = rgbToHex(...two[0]);
+  const newIndex = paletteHex.push(rgbToHex(...two[1])) - 1;
+  const reassigned = indices.map((idx, i) => {
+    if (idx !== colorIndex) return idx;
+    const g = [grid[i * 4], grid[i * 4 + 1], grid[i * 4 + 2]];
+    return colorDistanceSquared(g, two[0]) <= colorDistanceSquared(g, two[1]) ? colorIndex : newIndex;
+  });
+  return finalizeIndexed(paletteHex, reassigned, {
+    cols: pattern.cols, rows: pattern.rows, dimensions: pattern.dimensions,
+    availableColors: pattern.availableColors, itemType: pattern.itemType,
+  });
+}
+
+/**
  * The palette colors nearest to the one at colorIndex, closest first (README.md
  * "Adjust Individual Palette Colors": the detail pane shows the selected color's
  * nearest neighbors and how many squares each has). Returns at most neighborCount

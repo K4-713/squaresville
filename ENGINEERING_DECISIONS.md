@@ -62,6 +62,10 @@ raising it again restores color detail rather than staying degraded.
 Rationale: quantization is lossy; chaining regenerations off the pattern would
 compound the loss and make fine-tuning controls feel broken (a one-way ratchet).
 
+Exception: once the palette has been manually edited, the color-count control edits
+the current palette in place instead of regenerating, so the edits are preserved
+(ED-13). The "Generate pattern" button always regenerates from the source.
+
 ## ED-7: Palette edits preserve the indexed model; identical colors merge
 Palette edits (changing a color's value, and later delete/merge operations) act
 directly on the indexed pattern model — they never trigger regeneration from the
@@ -162,3 +166,21 @@ Rationale: the earlier median cut dropped unused palette colors after the fact, 
 delivered count fell short of — and bounced around — the requested number as it rose,
 which is baffling when tuning a palette. Tying the control to real, used, available
 colors makes the count trustworthy.
+
+## ED-13: After a manual edit, the palette color count edits in place
+Until the palette has been manually edited, changing the requested color count rebuilds
+the pattern from the source (ED-6). After any manual palette edit — changing a color,
+deleting, or merging — the palette's color-count control instead edits the *current*
+palette so the edits are preserved:
+- raising the count splits the most color-varied palette color into two, re-quantized
+  from that color's own squares (`splitColor` / `setPaletteColorCount`);
+- lowering the count merges the two nearest colors.
+
+Each step changes the count by exactly one and is capped at availableColors (ED-12). A
+fresh generation — or undoing back to the un-edited generated palette — returns the
+control to rebuild-from-source behavior. The session tracks the edited/un-edited state
+and restores it through undo. The "Generate pattern" button always rebuilds.
+
+Rationale: merging and deleting are live edits that preserve the rest of the palette,
+but the count control used to regenerate from the source and discard them. Making "add
+a color" an in-place edit — the natural inverse of merge — keeps the user's curation.
