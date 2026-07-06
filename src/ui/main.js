@@ -6,7 +6,7 @@
 // all processing happens in this browser tab — nothing is uploaded anywhere (ED-1).
 
 import { patternToRgba, nearestNeighbors } from '../pattern/pattern.js';
-import { proportionalDimension } from '../pattern/dimensions.js';
+import { proportionalDimension, formatFinishedSize } from '../pattern/dimensions.js';
 import {
   hexToRgb, rgbToHex, rgbToCmyk, cmykToRgb, rgbToHsb, hsbToRgb,
 } from '../pattern/color.js';
@@ -409,13 +409,15 @@ function renderPalette(pattern) {
 }
 
 function renderStats(pattern) {
-  const { width, height, units, totalSquares } = pattern.dimensions;
+  const { totalSquares } = pattern.dimensions;
+  // ED-16: finished size in the chosen unit, plus feet-and-inches when unit is inches.
+  const size = formatFinishedSize(pattern.dimensions);
   // ED-12: show the palette size and, when fewer than exist, how many are available.
   const colors = pattern.availableColors > pattern.palette.length
     ? `${pattern.palette.length} of ${pattern.availableColors} colors`
     : `${pattern.palette.length} colors`;
   el('pattern-stats').textContent =
-    `Finished size: ${width} × ${height} ${units} • ${totalSquares} total squares • ${colors}`;
+    `Finished size: ${size} • ${totalSquares} total squares • ${colors}`;
 }
 
 function renderResults(pattern) {

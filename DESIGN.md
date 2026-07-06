@@ -20,7 +20,8 @@ Defined once as CSS custom properties in `styles.css` (no magic values in rules)
 Rules of use:
 - Robin-egg blue is for **borders and accents only, never text** (insufficient
   contrast as text). Section separators are **long-dashed** lines in `--stitch`,
-  evoking easily-removable test stitching (basting).
+  evoking easily-removable test stitching (basting). The same stitch can frame all
+  four sides of a standalone panel (e.g. the final "Save the final pattern" area).
 - Khaki `--pattern-paper` is a background fill for panels/asides; text on it is
   always `--ink`. `--pattern-line` is the only khaki usable as text, and only on
   `--paper` or `--pattern-paper` backgrounds.

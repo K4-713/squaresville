@@ -16,8 +16,8 @@
 
   <main>
     <section aria-labelledby="upload-heading">
-      <h2 id="upload-heading">1. Upload an image</h2>
-      <label for="image-upload">Choose an image to start with</label>
+      <h2 id="upload-heading">1. Choose an image to start with</h2>
+      <label for="image-upload" class="visually-hidden">Choose an image to start with</label>
       <input type="file" id="image-upload" accept="image/*">
     </section>
 
@@ -98,7 +98,7 @@
           </div>
         </figure>
       </div>
-      <section aria-labelledby="export-heading">
+      <section aria-labelledby="export-heading" class="basting-box">
         <h3 id="export-heading">Save the final pattern</h3>
         <button type="button" id="generate-pattern-file" class="big-button">Generate Pattern</button>
         <div id="export-options" hidden>

@@ -79,6 +79,37 @@ section {
   margin-block: 0.75rem;
 }
 
+/* Boxed basting-stitch outline — the same robin-egg motif as the section
+   separators, but framing all four sides of a standalone panel (the final
+   "Save the final pattern" area). Four gradients: top/bottom horizontal rules,
+   left/right vertical rules. */
+.basting-box {
+  background-image:
+    repeating-linear-gradient(90deg, var(--stitch) 0 18px, transparent 18px 30px),
+    repeating-linear-gradient(90deg, var(--stitch) 0 18px, transparent 18px 30px),
+    repeating-linear-gradient(0deg, var(--stitch) 0 18px, transparent 18px 30px),
+    repeating-linear-gradient(0deg, var(--stitch) 0 18px, transparent 18px 30px);
+  background-size: 100% 2px, 100% 2px, 2px 100%, 2px 100%;
+  background-position: left top, left bottom, left top, right top;
+  background-repeat: no-repeat;
+  padding: 0.9rem 1.1rem;
+  border-radius: 0.4rem;
+}
+
+/* Accessible label kept for screen readers where the visible heading already
+   carries the instruction (DESIGN.md: form controls stay labeled). */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 /* The parameter form sits on a khaki "pattern tissue" card. */
 #parameters-form {
   background: var(--pattern-paper);

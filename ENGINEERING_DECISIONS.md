@@ -276,3 +276,20 @@ Rationale: matching the universally-expected chart form (numbered and grouped ed
 a framed grid with bold group rules, square cells) is what makes the export directly
 usable for the physical craft; encoding it purely through cell styling keeps the
 single-file, no-dependency `.xlsx` download intact (ED-1, ED-4).
+
+## ED-16: Inches dimensions are also shown in feet-and-inches
+The finished-size readout (README.md: "displays the final dimensions of the piece")
+shows each axis as a plain measurement in the selected unit. When that unit is
+**inches**, the readout additionally shows the same width and height in
+feet-and-inches notation, in parentheses — e.g. `60 × 80 inches (5′ × 6′ 8″)`.
+Other units (e.g. cm) show only the plain measurement.
+
+Conversion: feet = `floor(totalInches / 12)`, the inches remainder is rounded to at
+most two decimals, and a remainder that rounds up to 12″ carries into the feet so no
+`12″` component is ever shown. Whole feet omit the inches part (`2′`); a value under
+a foot omits the feet part (`6″`); fractional inches are kept (`1′ 3.5″`). Uses the
+prime/double-prime marks (′ ″).
+
+Rationale: pieces sized in inches (quilts, rugs) are commonly measured in feet and
+inches, so showing both spares the maker the mental division; the formatting is a
+pure function, unit-tested independent of the DOM.
