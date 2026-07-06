@@ -32,6 +32,43 @@ Remaining:
 
 10. Deployment to squaresville.k4-713.com (and documented rollback path)
 
+## Code-review follow-ups (2026-07-05, export ED-9/ED-15 work in 6bc0cc6)
+`/code-review` found no correctness bugs (two independent correctness passes plus
+edge-case execution). Outstanding quality/doc items, most-valuable first:
+
+Cheap fixes (close real gaps):
+- **Square-cell test is tautological** (`test/TDD_pattern_export.test.js`, "sized to
+  read square"): it imports `PATTERN_ROW_HEIGHT` and asserts cells equal that same
+  constant, so a broken derivation (e.g. cells becoming 2:1) still passes. Assert
+  squareness independently — `PATTERN_ROW_HEIGHT` (points) ≈ `PATTERN_COLUMN_WIDTH`
+  (px→points) within a tolerance.
+- **Module docstring stale** (`src/pattern/export.js` lines 1–6): describes only the
+  old "cell-for-cell / alternating backgrounds / legend" and omits the ED-15 layout
+  (dual headings, framed grid, square cells). Update per "keep code comments current".
+- **This changelog entry is internally stale**: the MVP paragraph above says the set
+  "grown to 79 … (237 marks)" and later "set is now 86 marks (258)". Reconcile to the
+  current 86/258.
+- **No test guards the ✴→✸ emoji swap**: add a cheap assertion (✴ U+2734 absent, ✸
+  U+2738 present) to the black-tier presence test so the emoji glyph can't creep back.
+
+Optional refactors (code is correct + verified; maintainability only):
+- **Edge-weight rule duplicated** (`export.js`): `leadingEdgeStyle`/`trailingEdgeStyle`
+  vs `headerLeadingStyle`/`headerTrailingStyle` differ only in the outer weight (thick
+  vs thin), and the merged group-header cells re-implement the same rule inline.
+  Collapse to two helpers taking an `outerStyle` param, called everywhere.
+- **`BORDER_COLOR` repeated ~20×** across five cell shapes: a small `borders({...})`
+  helper would centralize the color and per-edge properties.
+- **The four heading-cell builders are axis-transposed copies** (~40 lines in
+  `buildWorkbook`): factorable, though the row/col transposition makes a shared helper
+  a little awkward (lower ROI).
+- **`height` set on every N×M data cell** though the writer takes the row max: one cell
+  per row suffices (minor; setting it everywhere is also defensibly robust).
+
+Noted, not acting:
+- **`index.html` symbol-type default flip is untested**: consistent with the other
+  selects (`vivid`, `nearest`) that pin defaults via `selected` with no test, and there
+  is no DOM test harness (adding one needs a new dep — see "Automated browser tests").
+
 ## Decided, not yet built (2026-07-03)
 - **Measurement units:** offer inches, centimeters, and millimeters. Inches and cm
   exist; add millimeters to the units select.
@@ -41,10 +78,6 @@ Remaining:
   fully editable by the user. Needs its own slice after the MVP list above.
 
 ## Future ideas (explicitly not MVP)
-- **More standard symbols in the true-symbol set:** add common keyboard characters
-  (@, $, &, *, etc.) to `SYMBOL_SET` (ED-9) to lengthen the black tier before ink
-  colors kick in. Its own commit; keep the distinctiveness ordering and re-check
-  each renders monochrome in stock spreadsheet fonts.
 - **Automated browser tests:** UI-level behaviors and the DESIGN.md layout /
   accessibility commitments are verified per-change with ad-hoc headless-Chrome
   harnesses; a permanent browser test suite (e.g. Playwright) would make those
