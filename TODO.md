@@ -10,10 +10,23 @@ nearest-neighbor comparison chips. (2026-07-05) default maximum colors raised to
 (auto-capped to the image's own colors), and palette color locking (ED-14): a locked
 color can't be deleted, altered, or merged, survives a count decrease, and shows a
 lock icon on its swatches and neighbor comparisons. Export true-symbol set grown to
-64 distinctiveness-ordered monochrome glyphs, repeated in black/dark-blue/dark-red ink
-tiers (192 marks) before numeric fallback (ED-9); fixed a latent bug where the legend
-swatch's readable text color used the wrong write-excel-file property (`color` →
-`textColor`).
+79 distinctiveness-ordered monochrome marks — geometric shapes, the four card suits
+(♠ ♣ ♥ ♦), distinctive punctuation (# @ % & § ¶ £ ¥ $), and distinctive Greek letters
+(Γ Ξ Π Σ Φ Ψ Ω α β δ ζ λ; Latin look-alikes and geometric-collision shapes excluded) —
+repeated in black/dark-blue/dark-red ink tiers (237 marks) before numeric fallback (ED-9);
+all verified black-by-default and cleanly recolorable in the LibreOffice/Excel family via
+real-renderer checks (Google Sheets may show ♥/♦ as red emoji, an accepted tradeoff). Also
+fixed a latent bug where the legend swatch's readable text color used the wrong
+write-excel-file property (`color` → `textColor`). The pattern sheet is now laid out as a
+standard fiber-arts chart (ED-15): dual row/column headings (merged group index + absolute
+number), a heavy black frame around the data block, a thin grid with medium group lines
+(extended through the heading strips too), and square cells — verified end-to-end through
+the real write-excel-file writer. True symbols are now the default export symbol type
+(was numeric). Dropped ✴ (U+2734) from the symbol set — it is in the Unicode emoji set and
+rendered as a color glyph in LibreOffice — replacing it with the non-emoji sunburst ✸ (U+2738).
+Added the nine solar-system symbols (☿ ♀ ♁ ♂ ♃ ♄ ♅ ♆ ♇; all verified mono in LibreOffice),
+dropping the circled-plus ⊕ in favor of Earth ♁ since the two look alike; set is now 86 marks
+(258 across the three ink tiers before numeric fallback), ED-9.
 
 Remaining:
 

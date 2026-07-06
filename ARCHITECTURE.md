@@ -22,7 +22,8 @@ src/
     pattern.js      Orchestrates the above into the indexed pattern model (ED-3);
                     also nearest-neighbor lookup for the color detail pane
     export.js       Builds the final spreadsheet data (pattern sheet + color
-                    legend) in write-excel-file's cell format; symbols per ED-9
+                    legend) in write-excel-file's cell format; symbols per ED-9,
+                    fiber-arts chart layout (headings, borders, square cells) per ED-15
     session.js      Editing-session state: source pixels, params, current pattern;
                     parameter changes regenerate from the source (ED-6), palette
                     edits act on the indexed model and merge duplicates (ED-7).

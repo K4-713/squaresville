@@ -96,16 +96,26 @@ determinism keeps patterns reproducible and the round-trip promise intact.
 Symbols are assigned to palette colors in palette order, deterministically. Each
 assigned mark is a `{ value, color }` pair — the character plus its font ink.
 "Numeric" symbols are 1-based integers rendered as strings ("1", "2", …), all in
-black. "True symbols" come from a fixed, ordered set of **64** Unicode geometric
-shapes chosen to render as monochrome text in stock spreadsheet fonts (no symbol
-fonts like Wingdings; .xlsx cannot embed fonts). The set is ordered most-distinct
-first, so the most-used colors get the most tell-apart marks.
+black. "True symbols" come from a fixed, ordered set of **86** marks chosen to
+render as monochrome text in stock spreadsheet fonts (no symbol fonts like
+Wingdings; .xlsx cannot embed fonts): Unicode geometric shapes (squares, circles,
+triangles, diamonds, stars, crosses, fills, halves, hatches, rotations) and the
+four card suits (♠ ♣ ♥ ♦), followed by distinctive punctuation (# @ % & § ¶ £ ¥ $),
+distinctive Greek letters (Γ Ξ Π Σ Φ Ψ Ω α β δ ζ λ), and the nine solar-system
+symbols (☿ ♀ ♁ ♂ ♃ ♄ ♅ ♆ ♇). Latin look-alike Greek and marks that collide with
+another glyph in the set are deliberately excluded (e.g. the circled-plus ⊕ was
+dropped when Earth ♁ was added). Every mark takes its font ink and is verified
+black-by-default and cleanly recolorable in the LibreOffice/Excel family; the known
+exception is browser-based spreadsheets (e.g. Google Sheets), which may promote the
+emoji-capable marks (♥ / ♦ suits, ♀ / ♂) to a color glyph — an accepted tradeoff,
+not a regression. The set is ordered most-distinct first, so the most-used colors
+get the most tell-apart marks.
 
 When a palette needs more marks than there are glyphs, the glyph set repeats in
 successive **ink colors** — black, then dark blue, then dark red — yielding
-64 × 3 = 192 distinct marks before falling back to numerals. Ink color is a
+86 × 3 = 258 distinct marks before falling back to numerals. Ink color is a
 distinguishing axis independent of the palette color a mark stands for; because
-color is only introduced *after* all 64 black glyphs are used, palettes of 64 or
+color is only introduced *after* all 86 black glyphs are used, palettes of 86 or
 fewer colors stay pure black, so black-and-white printing is unaffected. Within one
 export every `(value, color)` pair is unique. Spreadsheet cells never name a custom
 font — styling sticks to universally-available defaults; only the font ink color is
@@ -229,3 +239,40 @@ Rationale: users curating a palette for a physical piece need to pin colors they
 (a specific thread or tile) so that reducing the palette or auto-editing never quietly drops
 or shifts them. Anchoring locks to hex identity keeps them attached to the *color* the user
 picked rather than a fragile index.
+
+## ED-15: The pattern sheet is laid out like a standard fiber-arts chart
+The pattern sheet (README.md "Saving The Final Pattern") is rendered in the form a
+quilter or cross-stitcher expects, so the exported chart is usable at the needle
+without re-teaching. Four layout commitments, all expressed through write-excel-file
+cell/column properties (no images, no custom fonts):
+
+- **Dual navigation headings.** The pattern data block is offset by two header rows
+  along the top and two header columns down the left (a blank 2×2 corner where they
+  meet). The *outer* header (top row / left column) is the **group** heading: one
+  merged cell per group (`span` across a column group, `rowSpan` down a row group)
+  carrying the 1-based group index; a trailing partial group merges only its real
+  extent. The *inner* header (adjacent to the pattern) is the **absolute** heading:
+  one cell per pattern column/row carrying its 1-based absolute number (1…cols,
+  1…rows), never restarting per group. Overlapped cells hidden by a merge are emitted
+  as `null` (the writer requires it).
+- **A heavy border isolates the chart from its navigation.** The whole pattern data
+  block carries a thick black outer border, visually separating the pattern from the
+  heading rows/columns. Headings themselves carry no heavy border.
+- **A grid with emphasized group lines.** Every pattern cell has a thin black border
+  on all four sides; an edge that falls on an interior group boundary is drawn one
+  weight heavier (medium); the block's outermost edges are heavier still (thick).
+  Per edge the heaviest applicable weight wins (outer thick > group medium > thin).
+  The same thin-and-medium ruling extends through the heading rows and columns so the
+  numbering reads as part of the chart; the headings carry no thick edge (that weight
+  frames the pattern block alone), and their outer edges are thin.
+- **Square cells.** Pattern column width and pattern row height are set from one
+  shared target so a cell reads as a square. Because Excel column width is measured
+  in character widths and row height in points, the row height is derived from the
+  column width through the standard approximations (≈7 px per width unit + ~5 px
+  padding; 0.75 pt per px); squareness is therefore close but font/zoom-dependent,
+  not pixel-exact. Header rows/columns are sized only to fit their numbers.
+
+Rationale: matching the universally-expected chart form (numbered and grouped edges,
+a framed grid with bold group rules, square cells) is what makes the export directly
+usable for the physical craft; encoding it purely through cell styling keeps the
+single-file, no-dependency `.xlsx` download intact (ED-1, ED-4).
