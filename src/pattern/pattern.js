@@ -167,3 +167,17 @@ export function patternToRgba(pattern) {
   }
   return { rgba, width: cols, height: rows };
 }
+
+/**
+ * The palette color index of the square at a normalized point in the pattern
+ * (README.md: select a color "directly in the design image"). `fractionX` and
+ * `fractionY` are 0..1 positions across the preview's width/height; the point is
+ * floored to a square and clamped inside the grid so edge/overshoot clicks still
+ * land on the nearest square rather than reading out of bounds.
+ */
+export function colorIndexAt(pattern, fractionX, fractionY) {
+  const { cols, rows, indices } = pattern;
+  const col = Math.min(cols - 1, Math.max(0, Math.floor(fractionX * cols)));
+  const row = Math.min(rows - 1, Math.max(0, Math.floor(fractionY * rows)));
+  return indices[row * cols + col];
+}

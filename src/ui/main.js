@@ -13,6 +13,7 @@ import {
 import { sliderGradientCss } from './adjusterGradients.js';
 import { hueForVector, vectorForHue, svForPoint, pointForSv } from './colorPicker.js';
 import { createSession, MERGE_STYLES } from '../pattern/session.js';
+import { colorIndexAt } from '../pattern/pattern.js';
 import { distinctColorCount } from '../pattern/quantize.js';
 import { buildWorkbook } from '../pattern/export.js';
 import { log } from './log.js';
@@ -760,4 +761,25 @@ linkProportionalInputs('pattern-rows', 'pattern-cols',
 el('image-upload').addEventListener('change', (e) => handleUpload(e.target.files[0]));
 el('parameters-form').addEventListener('submit', handleGenerate);
 el('target-colors').addEventListener('change', handleTargetColors);
+
+// README "Adjust Individual Palette Colors": clicking a square directly in the
+// pattern preview selects that square's color, exactly like clicking its palette
+// swatch — and, mid-merge, picks the second color to merge into (like a neighbor
+// chip). The palette swatches remain the keyboard-operable path.
+el('pattern-image').addEventListener('click', (event) => {
+  if (!session.pattern) return;
+  const rect = event.currentTarget.getBoundingClientRect();
+  if (rect.width === 0 || rect.height === 0) return;
+  const index = colorIndexAt(
+    session.pattern,
+    (event.clientX - rect.left) / rect.width,
+    (event.clientY - rect.top) / rect.height,
+  );
+  if (pendingMergeStyle !== null) {
+    completeMerge(index);
+  } else {
+    selectColor(session.pattern, index);
+  }
+});
+
 log.debug('squaresville ui initialized');

@@ -7,10 +7,27 @@
 //  - the pattern image stays an indexed-color image, and re-uploading it resumes work
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { generatePattern, patternToRgba } from '../src/pattern/pattern.js';
+import { generatePattern, patternToRgba, colorIndexAt } from '../src/pattern/pattern.js';
 import { solidImage, blockImage } from './helpers/testImages.js';
 
 const BASE_PARAMS = { squareSize: 1, units: 'inches', maxColors: 16 };
+
+test('TDD_a click point in the pattern maps to that square\'s color index (README: select a color "directly in the design image")', () => {
+  // A 4x2 pattern with a known index layout:
+  //   row 0:  0 0 1 1
+  //   row 1:  2 2 3 3
+  const pattern = { cols: 4, rows: 2, indices: [0, 0, 1, 1, 2, 2, 3, 3] };
+  // Normalized (fractionX, fractionY) within each quadrant picks its color index.
+  assert.equal(colorIndexAt(pattern, 0.10, 0.25), 0, 'top-left square');
+  assert.equal(colorIndexAt(pattern, 0.60, 0.25), 1, 'top-right square');
+  assert.equal(colorIndexAt(pattern, 0.10, 0.75), 2, 'bottom-left square');
+  assert.equal(colorIndexAt(pattern, 0.90, 0.75), 3, 'bottom-right square');
+  // A cell boundary falls into the higher cell (floor): 0.5 of 4 cols = col 2.
+  assert.equal(colorIndexAt(pattern, 0.5, 0.0), 1, 'the midline lands in the 3rd column');
+  // Edge/overshoot clicks clamp inside the grid rather than reading out of bounds.
+  assert.equal(colorIndexAt(pattern, 0.0, 0.0), 0, 'top-left corner');
+  assert.equal(colorIndexAt(pattern, 1.0, 1.0), 3, 'bottom-right corner clamps to the last square');
+});
 
 test('TDD_rows and cols default to the image pixel dimensions (README)', () => {
   const { rgba, width, height } = solidImage(7, 5, [10, 20, 30]);

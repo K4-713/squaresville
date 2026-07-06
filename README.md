@@ -16,7 +16,7 @@ Squaresville allows a large degree of control over your pattern, and makes it si
 If you want to let Squaresville automatically adjust the number of colors in your final image, change the number of colors in the palette (Either use the text control, or the associated up/down buttons). The pattern image will automatically regenerate, according to your selected conversion style. This control always shows how many colors are currently in the palette — the same count reported in the pattern stats — and it stays in step as you merge or delete colors.
 
 ### Adjust Individual Palette Colors
-Each individual color in the palette can be removed, changed to a different color, or merged with another color in the palette. Start by seleting the color you want to alter: This will add that color's information to the color detail pane. The detail pane shows:
+Each individual color in the palette can be removed, changed to a different color, or merged with another color in the palette. Start by seleting the color you want to alter, by clicking on the color either in the palette, or directly in the design image: This will highlight the selected color in the palette, pulse all the squares of that color in the design image, and add that color's information to the color detail pane. The detail pane shows:
 * Information about the color, including a swatch and hex code
 * How many squares of that color are in the current pattern
 * The selected color's nearest neighbor colors in the current palette, and how many squares each of these has in the current pattern

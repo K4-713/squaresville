@@ -282,6 +282,7 @@ figcaption {
 
 #pattern-image {
   image-rendering: pixelated;
+  cursor: pointer; /* clicking a square selects that color (README) */
 }
 
 /* Data readouts (dimensions, counts, hex codes) read as data: monospace. */
