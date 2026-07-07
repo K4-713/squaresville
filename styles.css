@@ -574,3 +574,39 @@ figcaption {
   border: 1px solid var(--ink);
   border-radius: 0.15rem;
 }
+
+/* Site footer: a small basting-stitch support panel plus a one-line colophon.
+   Links are ink with a stitch-colored underline (robin-egg is never text);
+   hover shifts the text to --pattern-line, which is legal khaki text on paper. */
+.site-footer {
+  margin-top: 1.5rem;
+}
+
+.site-footer .support {
+  max-width: 34rem;
+}
+
+.site-footer .support p {
+  margin: 0 0 0.6rem;
+}
+
+.kofi-badge img {
+  display: block;
+}
+
+.site-footer a {
+  color: var(--ink);
+  text-decoration-color: var(--stitch);
+  text-decoration-thickness: 2px;
+  text-underline-offset: 0.15em;
+}
+
+.site-footer a:hover {
+  color: var(--pattern-line);
+}
+
+.colophon {
+  margin: 0.9rem 0 0;
+  font-size: 0.95rem;
+  color: var(--pattern-line);
+}

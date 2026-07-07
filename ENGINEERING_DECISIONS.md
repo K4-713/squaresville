@@ -43,6 +43,11 @@ Rationale: easy deploy/rollback (project guideline), a fully-auditable pinned
 supply chain, and works with ED-1 (nothing external to call at runtime).
 (Amended 2026-07-03: originally "no third-party runtime dependencies at all";
 relaxed to admit the vendored spreadsheet library chosen for the final export.)
+(Amended 2026-07-07: "no references to external origins" means nothing the page
+*fetches* on load. Plain `<a href>` navigation links — contacted only when the
+user clicks — and the `<link rel="canonical">` URL declaration are permitted;
+this admits the site footer's Ko-fi tip link and k4-713.com breadcrumb. Scripts,
+styles, fonts, images, and anything else auto-loaded stay same-origin only.)
 
 ## ED-5: Transparent source pixels composite over white
 When an uploaded image has transparency, each pixel is composited over a white

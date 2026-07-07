@@ -41,10 +41,21 @@ test('TDD_pattern generation makes no network calls (ED-1)', () => {
   assert.deepEqual(calls, []);
 });
 
-test('TDD_no source file contains network APIs or external URLs (ED-1, ED-4)', async () => {
+// ED-4 (as amended 2026-07-07) forbids external URLs anywhere the browser would
+// fetch them on page load. User-clicked <a href> navigation and the
+// <link rel="canonical"> declaration are the two allowed exceptions in HTML —
+// neither is fetched by the page — so those are stripped before scanning.
+function stripAllowedNavigationUrls(html) {
+  return html
+    .replace(/<a\s[^>]*>/gi, '<a>')
+    .replace(/<link rel="canonical"[^>]*>/gi, '');
+}
+
+test('TDD_no source file contains network APIs or auto-loaded external URLs (ED-1, ED-4)', async () => {
   const forbidden = [/\bfetch\s*\(/, /XMLHttpRequest/, /WebSocket/, /sendBeacon/, /EventSource/, /https?:\/\//i];
   for (const file of await collectSourceFiles()) {
-    const text = await readFile(path.join(projectRoot, file), 'utf8');
+    let text = await readFile(path.join(projectRoot, file), 'utf8');
+    if (file.endsWith('.html')) text = stripAllowedNavigationUrls(text);
     for (const pattern of forbidden) {
       assert.ok(!pattern.test(text), `${file} matches forbidden pattern ${pattern}`);
     }
