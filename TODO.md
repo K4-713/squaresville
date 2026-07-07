@@ -31,6 +31,23 @@ dropping the circled-plus ⊕ in favor of Earth ♁ since the two look alike; se
 Remaining:
 
 10. Deployment to squaresville.k4-713.com (and documented rollback path)
+    — deployed 2026-07-07; rollback = restore previous files (ED-4), rsync recipe
+    in the websites repo's DROPLET_SETUP.md.
+
+## Site graphics — for Katie (specs; the discoverability tags are already wired)
+
+- **Link-preview image (og:image).** PNG or JPG, **1200×630** (the standard OG
+  ratio; anything ≥600×315 works — nudgery ships fine at 1024×500), no
+  transparency, keep it under ~300 KB. A photogenic sample pattern next to its
+  source image would be the natural art. Drop it at `assets/social/og-image.png`,
+  then add to `index.html` `<head>`:
+  `<meta property="og:image" content="https://squaresville.k4-713.com/assets/social/og-image.png">`
+  and change `twitter:card` from `summary` to `summary_large_image`.
+- **Favicon set.** Full recipe in the websites repo's `FAVICON_REFERENCE.md`
+  (dimensions, flattening, head tags). Short version: `favicon.ico` multi-res
+  16/32/48 at the **site root**; `favicon.svg` cropped tight to the artwork;
+  `apple-touch-icon.png` 180×180 **flat, no alpha** (iOS rounds its own corners);
+  optional 32×32/16×16 PNGs. Until these exist, `/favicon.ico` 404s in the logs.
 
 ## Code-review follow-ups (2026-07-05, export ED-9/ED-15 work in 6bc0cc6)
 `/code-review` found no correctness bugs (two independent correctness passes plus

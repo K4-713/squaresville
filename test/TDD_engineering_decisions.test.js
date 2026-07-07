@@ -12,7 +12,7 @@ import { blockImage } from './helpers/testImages.js';
 const projectRoot = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 
 async function collectSourceFiles() {
-  const files = ['index.html', 'styles.css'];
+  const files = ['index.html', 'guide.html', 'styles.css'];
   for (const dir of ['src/pattern', 'src/ui']) {
     for (const name of await readdir(path.join(projectRoot, dir))) {
       if (name.endsWith('.js')) files.push(path.join(dir, name));
@@ -42,13 +42,16 @@ test('TDD_pattern generation makes no network calls (ED-1)', () => {
 });
 
 // ED-4 (as amended 2026-07-07) forbids external URLs anywhere the browser would
-// fetch them on page load. User-clicked <a href> navigation and the
-// <link rel="canonical"> declaration are the two allowed exceptions in HTML —
-// neither is fetched by the page — so those are stripped before scanning.
+// fetch them on page load. The allowed exceptions in HTML — none of which the
+// page fetches — are stripped before scanning: user-clicked <a href> navigation,
+// the <link rel="canonical"> declaration, crawler-read metadata (Open Graph /
+// Twitter <meta> tags), and JSON-LD data blocks (never fetched or executed).
 function stripAllowedNavigationUrls(html) {
   return html
     .replace(/<a\s[^>]*>/gi, '<a>')
-    .replace(/<link rel="canonical"[^>]*>/gi, '');
+    .replace(/<link rel="canonical"[^>]*>/gi, '')
+    .replace(/<meta (?:property="og:|name="twitter:)[^>]*>/gi, '')
+    .replace(/<script type="application\/ld\+json">[\s\S]*?<\/script>/gi, '');
 }
 
 test('TDD_no source file contains network APIs or auto-loaded external URLs (ED-1, ED-4)', async () => {

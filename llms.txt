@@ -1,0 +1,11 @@
+# Squaresville Pattern Generator
+
+> A tool to create patterns for quilting, cross-stitch, mosaics, or other physical objects from a digital image
+
+Squaresville runs entirely in the browser: all processing is client-side and images never leave the machine. There are no accounts, no ads, no tracking, and no third-party requests. It is free, and the source code is public domain (CC0 1.0) at https://github.com/K4-713/squaresville. A K4-713 project (https://k4-713.com/).
+
+Upload an image, choose what kind of item the pattern is for (quilt, cross-stitch, mosaic, or something else), pick units, square size, rows/columns, maximum colors, and palette style. Squaresville generates a base pattern side-by-side with the original, with an editable color palette for fine-tuning (adjust, delete, merge, lock, and sort colors; dithering, diffusion, or nearest-color conversion). The final pattern exports as a tabbed spreadsheet: a symbol chart plus a color legend.
+
+## Pages
+- [Squaresville Pattern Generator](https://squaresville.k4-713.com/): The app itself.
+- [User guide](https://squaresville.k4-713.com/guide.html): The full manual — generating, fine-tuning, and saving patterns.

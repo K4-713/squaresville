@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>How to use Squaresville — User Guide</title>
+  <meta name="description" content="How to use the Squaresville Pattern Generator: generate a base pattern from your image, fine-tune the palette, and save the final pattern and color legend as a tabbed spreadsheet.">
+  <link rel="canonical" href="https://squaresville.k4-713.com/guide.html">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body class="doc-page">
+  <header>
+    <h1>How to use Squaresville</h1>
+    <p><a href="./">The Squaresville Pattern Generator</a> is a tool to create patterns for quilting, cross-stitch, mosaics, or other physical objects from a digital image.</p>
+  </header>
+
+  <!-- The prose below is the project README's user manual, verbatim. -->
+  <main>
+    <section aria-labelledby="using-h">
+      <h2 id="using-h">Getting started</h2>
+      <p>First, select a saved image of your own to start with.
+      You will be prompted what kind of item you would like to generate a pattern for, what measurement units you'd like to work with, how large you want your squares to be in real life, how many rows/columns of squares you want in the pattern (with the image's original dimensions in pixels as the default), maximum number of colors to use, and palette style. Changing the number of columns or rows of squares will change the other, unchanged number so the pattern stays proportionate to your image.</p>
+      <p>With this information, Squaresville will generate and display a base pattern image to work with, side-by-side with the original upload. It will also display the final dimensions of the piece based on your parameters, how many total squares are in the pattern, and open an editable color palette with all the colors present in the pattern image for fine-tuning.</p>
+    </section>
+
+    <section aria-labelledby="finetune-h">
+      <h2 id="finetune-h">Fine-tuning your Squaresville pattern</h2>
+      <p>Squaresville allows a large degree of control over your pattern, and makes it simple to adjust things like square size, row/column (pixel) count, number of distinct colors in the palette, and more. For ease of use, you will be able to undo up to 10 recent actions against the palette, project dimensions, and image conversion style (dithering, diffusion, nearest color). Throughout the editing process the original image and the pattern preview are shown side by side at equal size, each scaled to fit the space your screen affords, so it's easy to compare them and see what's changing.</p>
+
+      <h3>Adjust Number of Colors</h3>
+      <p>If you want to let Squaresville automatically adjust the number of colors in your final image, change the number of colors in the palette (Either use the text control, or the associated up/down buttons). The pattern image will automatically regenerate, according to your selected conversion style. This control always shows how many colors are currently in the palette — the same count reported in the pattern stats — and it stays in step as you merge or delete colors.</p>
+
+      <h3>Adjust Individual Palette Colors</h3>
+      <p>Each individual color in the palette can be removed, changed to a different color, or merged with another color in the palette. Start by seleting the color you want to alter, by clicking on the color either in the palette, or directly in the design image: This will highlight the selected color in the palette, pulse all the squares of that color in the design image, and add that color's information to the color detail pane. The detail pane shows:</p>
+      <ul>
+        <li>Information about the color, including a swatch and hex code</li>
+        <li>How many squares of that color are in the current pattern</li>
+        <li>The selected color's nearest neighbor colors in the current palette, and how many squares each of these has in the current pattern</li>
+        <li>A color adjuster tool to edit the color either by color picker, color sliders (rgb, cmyk, hsb), or directly via hex code</li>
+      </ul>
+      <p>Additionally, when selecting a color, all that color's pixels in the pattern preview image will slowly pulse once.</p>
+      <p>For convenience, the current color palette can be sorted in a variety of standard color sort methods, and also by frequency of that color in the current pattern image. When a color is selected, it will remain selected through a sorting operation. While a sort is active, the palette re-applies it after every change you make to the palette — adjusting a color, deleting, or merging — so it always stays in the order you chose.</p>
+
+      <h3>Locking a Color</h3>
+      <p>To ensure that a color can't be removed or edited, select the color you want to lock, and click on that color's "Lock Color" button in the detail pane. A lock icon will appear on that color's swatches in the main palette, and in neighbor comparisons, and the "Lock Color" button will change to "Unlock Color". When a color is locked, it cannot be deleted, altered, or merged into another color.</p>
+
+      <h4>Deleting a Color</h4>
+      <p>Select the color you want to remove, and click on that color's delete button in the detail pane. The image will regenerate, reassigning that color's pixels to the nearest remaining color in the palette.</p>
+
+      <h4>Merging Colors</h4>
+      <p>Select the color you want to merge with another color in the palette. In the detail pane, make sure the style of merge you want to perform is selected, click the "Merge Color" button, and then select the color you want to merge with. You can select any of the current colors in the palette to merge with, or select one of the convenient near neighbor colors in the detail pane.
+      Merge styles are:</p>
+      <ul>
+        <li>A-&gt;B : Assigns all the first selected color's pixels to the second color, and removes the first color</li>
+        <li>A&lt;-B : Assigns all the second color's pixels to the first color, and removes the second color</li>
+        <li>Average Color: Assigns both color's pixels to the average of both colors, removes both original colors, and adds the average color to the palette</li>
+      </ul>
+    </section>
+
+    <section aria-labelledby="save-image-h">
+      <h2 id="save-image-h">Saving the Pattern Image</h2>
+      <p>At any point, right-clicking and saving the pattern image will work: The indexed color image will remain saveable, making it easy to resume progress by re-uploading the pattern image.</p>
+    </section>
+
+    <section aria-labelledby="save-final-h">
+      <h2 id="save-final-h">Saving The Final Pattern</h2>
+      <p>When you are happy with the result, click the large "Generate Pattern" button under the pattern preview image. You will be prompted for your desired size of row/column groups (3 or 5), and symbol type (numeric or true symbols). Squaresville will then assign one symbol to each color in the palette, and generate both the pattern and color legend in a tabbed spreadsheet.</p>
+      <p>The pattern spreadsheet will directly correspond to the pattern preview image, with each pixel row and column corresponding to a spreadsheet row / column. The rows and columns will be grouped by the selected size of row/column groups, with subtle alternating background colors to make it easier to follow in a large project.</p>
+      <p>The color legend sheet will include the color's symbol, a swatch of the color with its hex code, and the number of squares using this color in the final pattern.</p>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <p class="colophon">A <a href="https://k4-713.com/">K4-713</a> project · <a href="./">Back to the app</a> · <a href="https://github.com/K4-713/squaresville" rel="noopener">Source on GitHub</a></p>
+  </footer>
+</body>
+</html>

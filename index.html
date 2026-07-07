@@ -6,6 +6,28 @@
   <title>Squaresville Pattern Generator</title>
   <meta name="description" content="Create patterns for quilting, cross-stitch, mosaics, or other physical objects from a digital image.">
   <link rel="canonical" href="https://squaresville.k4-713.com/">
+  <!-- Link-preview cards (Open Graph; Mastodon reads these too). No og:image yet —
+       see TODO.md "Site graphics" for the spec; add the tag when the art exists. -->
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Squaresville Pattern Generator">
+  <meta property="og:description" content="Create patterns for quilting, cross-stitch, mosaics, or other physical objects from a digital image.">
+  <meta property="og:url" content="https://squaresville.k4-713.com/">
+  <meta name="twitter:card" content="summary">
+  <!-- Structured data: a data block, never fetched or executed (CSP-inert). -->
+  <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      "name": "Squaresville Pattern Generator",
+      "applicationCategory": "DesignApplication",
+      "browserRequirements": "Requires JavaScript. All processing is client-side; images never leave the machine.",
+      "description": "A tool to create patterns for quilting, cross-stitch, mosaics, or other physical objects from a digital image.",
+      "url": "https://squaresville.k4-713.com/",
+      "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+      "publisher": { "@type": "Organization", "name": "K4-713" },
+      "license": "https://creativecommons.org/publicdomain/zero/1.0/"
+    }
+  </script>
   <link rel="stylesheet" href="styles.css">
   <script src="vendor/write-excel-file-4.1.1.min.js"></script>
   <script type="module" src="src/ui/main.js"></script>
@@ -251,6 +273,10 @@
         </aside>
       </div>
     </section>
+    <section aria-labelledby="about-heading">
+      <h2 id="about-heading">About Squaresville</h2>
+      <p>Squaresville is a tool to create patterns for quilting, cross-stitch, mosaics, or other physical objects from a digital image. Everything happens in your browser: your images never leave your machine. Read the <a href="guide.html">user guide</a> for the full manual, or browse the <a href="https://github.com/K4-713/squaresville" rel="noopener">source on GitHub</a> — the code is public domain (CC0).</p>
+    </section>
   </main>
 
   <footer class="site-footer">
@@ -266,7 +292,7 @@
         <img src="assets/kofi-button.svg" alt="Support Squaresville on Ko-fi" width="223" height="30">
       </a>
     </div>
-    <p class="colophon">A <a href="https://k4-713.com/">K4-713</a> project</p>
+    <p class="colophon">A <a href="https://k4-713.com/">K4-713</a> project · <a href="guide.html">User guide</a> · <a href="https://github.com/K4-713/squaresville" rel="noopener">Source on GitHub</a></p>
   </footer>
 </body>
 </html>

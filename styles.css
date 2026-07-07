@@ -610,3 +610,30 @@ figcaption {
   font-size: 0.95rem;
   color: var(--pattern-line);
 }
+
+/* Prose pages (the user guide): narrower measure than the app workspace,
+   and an h4 tier the app itself never needs. */
+.doc-page main {
+  max-width: 46rem;
+}
+
+.doc-page h4 {
+  color: var(--ink);
+  line-height: 1.15;
+  font-weight: 400;
+  font-size: 1rem;
+  margin: 0.4rem 0 0.25rem;
+}
+
+.doc-page a,
+header a {
+  color: var(--ink);
+  text-decoration-color: var(--stitch);
+  text-decoration-thickness: 2px;
+  text-underline-offset: 0.15em;
+}
+
+.doc-page a:hover,
+header a:hover {
+  color: var(--pattern-line);
+}
