@@ -423,6 +423,9 @@ function renderStats(pattern) {
 
 function renderResults(pattern) {
   el('results-section').hidden = false;
+  // The footer tip ask stays hidden until a pattern actually exists — and once
+  // earned, stays visible for the session (a fresh upload doesn't retract it).
+  el('footer-support').hidden = false;
   renderStats(pattern);
   // The number-of-colors control always shows the actual palette size, matching
   // the stats line — both derive from pattern.palette.length (README "Adjust
